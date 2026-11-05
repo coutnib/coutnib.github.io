@@ -30,6 +30,12 @@ A voxel sandbox game in a single HTML file. Open `stonefield.html` in a desktop 
 - **Guard posts**: in the Crew tab, or in a hired person's dialog, press Assign post (or Move post), then click an explored spot on the map. They walk there and guard a 14 block radius, even when you are far away; they take up the post again whenever you return.
 - **Mounts**: craft a Saddle (hide, fiber, stick) at the workbench, or a Flight Harness (saddle, ember shards, fiber) for fliers. Hold it and right-click a tamed mossback, woolhorn, tusker, glimmerstag, shellback or crystalback (saddle), or a Stormwing or Duskwing (harness). Then right-click with an empty hand to ride. Stormwings (day) and Duskwings (night) are rare fliers: tame them with Smoked Jerky and Starlight Treats. Land before you dismount. Releasing a tame returns its saddle.
 - **Discard**: pick up a stack and press Discard in the pack (right-click for just one), or press Q in the world.
+- **Ladders**: craft 3 from 5 sticks by hand. Place one on the side of a block, then aim at the top or bottom of a ladder to extend it. Climb with W or Space, hold Shift to cling, let go to slide down. Breaking the block behind a ladder knocks it loose.
+
+### Limits, release and breeding
+- **Limits**: up to 5 hires (followers, guards and gatherers on the payroll together) and 10 tamed animals. The Crew tab shows both counts.
+- **Release**: in the Crew tab press Release (click twice to confirm) on any hire or tame, including babies. Gatherers on the payroll have a Let go button there once their haul is collected.
+- **Breeding**: feed the same taming treat to two adults of one species within 12 blocks of each other and they have a baby. Parents rest for 5 minutes afterwards. Babies are yours automatically, follow you, grow up in 10 minutes (a treat speeds it up), and don't count toward the 10 tame limit, even once grown. Up to 20 of them at a time. Babies can't be saddled, give gifts or fight until grown.
 
 ### Building and decorating
 - **Storage Box** (27 slots) and **Stonebound Box** (54 slots): right-click to open, shift-click to move stacks, Stash matching and Take all. Hold Shift while right-clicking to place a block against a box or sign.
