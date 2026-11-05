@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Little App Shelf</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌷</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fff8f1;
+      --bg-dot: #f6e3d4;
+      --ink: #4a3b47;
+      --ink-soft: #8a7685;
+      --card: #ffffff;
+      --shadow: 0 6px 0 #f0d9c8;
+      --shadow-hover: 0 10px 0 #ebcdb8;
+      --ring: #e7b8c9;
+      --pink: #ffd6e0;
+      --mint: #d3f2e3;
+      --butter: #fff0b8;
+      --sky: #d6e9ff;
+      --lilac: #e8dcff;
+      --peach: #ffe0cc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #241e2b;
+        --bg-dot: #312939;
+        --ink: #f5e9f0;
+        --ink-soft: #b9a8b5;
+        --card: #2f2737;
+        --shadow: 0 6px 0 #18131d;
+        --shadow-hover: 0 10px 0 #18131d;
+        --ring: #c98aa3;
+        --pink: #5a3346;
+        --mint: #2b4a3f;
+        --butter: #4f4527;
+        --sky: #2c3d56;
+        --lilac: #3e3358;
+        --peach: #553a2c;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: radial-gradient(var(--bg-dot) 2px, transparent 2px);
+      background-size: 26px 26px;
+      color: var(--ink);
+      font-family: "Nunito", system-ui, sans-serif;
+      padding: 48px 16px 64px;
+    }
+    main { max-width: 860px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 36px; }
+    .mascot {
+      font-size: 56px;
+      display: inline-block;
+      animation: bob 3s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      50% { transform: translateY(-8px) rotate(4deg); }
+    }
+    h1 {
+      font-family: "Fredoka", sans-serif;
+      font-weight: 600;
+      font-size: clamp(2rem, 6vw, 2.8rem);
+      margin: 8px 0 6px;
+      letter-spacing: 0.5px;
+    }
+    .greeting { color: var(--ink-soft); margin: 0; font-size: 1.05rem; }
+
+    .search {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      margin: 22px auto 0;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 2px solid var(--bg-dot);
+      background: var(--card);
+      color: var(--ink);
+      font: inherit;
+      outline: none;
+    }
+    .search:focus { border-color: var(--ring); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 22px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      padding: 22px;
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      color: inherit;
+      text-decoration: none;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .card:hover, .card:focus-visible {
+      transform: translateY(-4px) rotate(-0.6deg);
+      box-shadow: var(--shadow-hover);
+      outline: none;
+    }
+    .card:focus-visible { box-shadow: var(--shadow-hover), 0 0 0 3px var(--ring); }
+    .icon {
+      width: 64px; height: 64px;
+      display: grid; place-items: center;
+      font-size: 34px;
+      border-radius: 18px;
+      background: var(--tint);
+    }
+    .card:hover .icon { animation: wiggle .5s ease; }
+    @keyframes wiggle {
+      25% { transform: rotate(-10deg); }
+      75% { transform: rotate(10deg); }
+    }
+    .name {
+      font-family: "Fredoka", sans-serif;
+      font-weight: 500;
+      font-size: 1.3rem;
+      margin: 4px 0 0;
+    }
+    .desc { color: var(--ink-soft); margin: 0; line-height: 1.45; flex: 1; }
+    .go {
+      align-self: flex-start;
+      font-family: "Fredoka", sans-serif;
+      font-size: .9rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--tint);
+    }
+
+    .empty { text-align: center; color: var(--ink-soft); display: none; }
+    footer { text-align: center; color: var(--ink-soft); margin-top: 44px; font-size: .9rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mascot, .card:hover .icon { animation: none; }
+      .card { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="mascot" aria-hidden="true">🌷</div>
+      <h1>My Little App Shelf</h1>
+      <p class="greeting" id="greeting">Hello! What are we doing today?</p>
+      <input class="search" id="search" type="search" placeholder="🔍 Find an app…" aria-label="Find an app">
+    </header>
+
+    <ul class="grid" id="grid"></ul>
+    <p class="empty" id="empty">No apps match that 🥲</p>
+
+    <footer>made with 💖 · one tiny step at a time</footer>
+  </main>
+
+  <script>
+    // ✏️ Add new apps here. `path` is the folder in this repo.
+    // tint options: pink, mint, butter, sky, lilac, peach
+    const apps = [
+      {
+        name: "Egg Cartion Hathery",
+        path: "egg-cartion-hathery/",
+        emoji: "🥚",
+        desc: "Hatch little eggs as you get things done.",
+        tint: "butter"
+      },
+      {
+        name: "StudyQuest",
+        path: "studyquest/",
+        emoji: "📚",
+        desc: "Level up your study sessions, one quest at a time.",
+        tint: "lilac"
+      }
+    ];
+
+    const grid = document.getElementById("grid");
+    const empty = document.getElementById("empty");
+
+    function render(filter = "") {
+      const q = filter.trim().toLowerCase();
+      const shown = apps.filter(a =>
+        (a.name + " " + a.desc).toLowerCase().includes(q));
+      grid.innerHTML = "";
+      for (const app of shown) {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <a class="card" href="${app.path}" style="--tint: var(--${app.tint || "pink"})">
+            <span class="icon" aria-hidden="true">${app.emoji}</span>
+            <h2 class="name"></h2>
+            <p class="desc"></p>
+            <span class="go">open →</span>
+          </a>`;
+        li.querySelector(".name").textContent = app.name;
+        li.querySelector(".desc").textContent = app.desc;
+        grid.appendChild(li);
+      }
+      empty.style.display = shown.length ? "none" : "block";
+    }
+
+    document.getElementById("search").addEventListener("input", e => render(e.target.value));
+
+    const h = new Date().getHours();
+    document.getElementById("greeting").textContent =
+      h < 5  ? "Up late? Be gentle with yourself 🌙" :
+      h < 12 ? "Good morning! Let's have a cozy, productive day ☀️" :
+      h < 18 ? "Good afternoon! You're doing great 🌼" :
+               "Good evening! Time to wrap things up ✨";
+
+    render();
+  </script>
+</body>
+</html>
