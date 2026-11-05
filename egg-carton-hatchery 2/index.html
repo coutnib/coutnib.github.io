@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Egg Carton Hatchery</title>
+<meta name="description" content="A task tracker where finished tasks hatch critters you can feed and play with.">
+<meta name="theme-color" content="#E4F0EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#122226" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hatchery">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;600;800&family=DM+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Egg Carton <span>Hatchery</span></h1>
+      <p class="sub">Every task is an egg. Crack one each time you finish a task. Every so often a cracked egg hatches a critter for your nursery: about one per 10 tasks, and at least 2 even on a short list.</p>
+    </div>
+    <div class="score"><b id="count">0</b><small id="countSub">of 200 done</small></div>
+  </header>
+
+  <section class="meter" aria-label="Progress">
+    <div class="meter-row">
+      <div class="pips" id="pips" aria-hidden="true"></div>
+      <div class="next" id="next">10 more eggs to the next hatch</div>
+    </div>
+    <div class="chip" id="rule"></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" id="barWrap"><i id="bar" style="width:0%"></i></div>
+    <div class="chip" id="invChip">In your pocket: nothing yet</div>
+    <div class="meter-row">
+      <div class="tools" role="group" aria-label="View">
+        <button class="btn" id="vCarton" aria-pressed="true">Carton</button>
+        <button class="btn" id="vList" aria-pressed="false">List &amp; names</button>
+        <button class="btn" id="vNursery" aria-pressed="false">Nursery</button>
+        <button class="btn" id="sound" aria-pressed="true">Sound on</button>
+      </div>
+      <span class="chip" id="sync">Loading saved progress…</span>
+    </div>
+  </section>
+
+  <section class="play" id="play" hidden aria-label="Nursery playroom">
+    <div class="play-head">
+      <div>
+        <h2>The nursery</h2>
+        <p class="hint">Pick something from your pocket, then tap the room. Every egg you crack drops a few new items.</p>
+      </div>
+    </div>
+    <div class="tools" role="group" aria-label="Nursery tools">
+      <button class="btn tool" data-tool="pet" aria-pressed="true">Pet</button>
+      <button class="btn tool" data-tool="cookie" aria-pressed="false">Cookie <b>0</b></button>
+      <button class="btn tool" data-tool="berry" aria-pressed="false">Berries <b>0</b></button>
+      <button class="btn tool" data-tool="bubbles" aria-pressed="false">Bubbles <b>0</b></button>
+      <button class="btn tool" data-tool="toy" aria-pressed="false">Squeaky star <b>0</b></button>
+      <button class="btn tool" data-tool="ball" aria-pressed="false">Ball <b>free</b></button>
+      <button class="btn" id="lights" aria-pressed="false">Lights out</button>
+      <button class="btn" id="backToCarton">Back to the carton</button>
+    </div>
+    <div class="room" id="room" data-tool="pet">
+      <div class="win"><i></i></div><div class="shelfdeco"></div><div class="rug"></div>
+      <div class="sight" id="sight" hidden></div>
+      <div class="room-empty" id="roomEmpty" hidden>The nursery is waiting for its first critter.<br>Crack <span id="roomEmptyN">10 eggs</span> to hatch one.</div>
+    </div>
+    <p class="chip" id="playMsg" aria-live="polite">Tap a critter to pet it.</p>
+    <div class="roster" id="roster"></div>
+  </section>
+
+  <div class="main" id="mainArea">
+    <section>
+      <h2 id="boardTitle">The carton</h2>
+      <p class="hint" id="boardHint">Tap an egg to crack it. Tap again to undo. Switch to List to give tasks names.</p>
+      <div class="carton" id="carton"></div>
+      <div class="list" id="list" hidden></div>
+    </section>
+    <aside class="nursery">
+      <h2>Nursery</h2>
+      <div class="shelf" id="shelf"></div>
+      <p class="hint" id="nurseryHint">Tap a critter to meet it again.</p>
+      <button class="aside-btn" id="openNursery">Visit the nursery</button>
+    </aside>
+  </div>
+
+  <details class="settings">
+    <summary>Carton settings</summary>
+    <div class="set-grid">
+      <label for="total">Number of tasks
+        <input type="number" id="total" min="1" max="1000" step="1" value="200">
+      </label>
+      <label for="paste">Paste your task list, one per line. This replaces your task names, and the carton resizes to match. Ticked tasks keep their place.
+        <textarea id="paste" placeholder="Email the landlord&#10;Renew passport&#10;Clean out the garage"></textarea>
+      </label>
+      <div class="tools">
+        <button class="btn" id="applyPaste">Apply names</button>
+        <button class="btn danger" id="reset">Start over</button>
+        <span class="chip" id="resetMsg" hidden></span>
+      </div>
+      <div>
+        <strong>Backups</strong>
+        <p class="hint" style="margin:4px 0 8px">Progress lives in this browser on this phone. Save a backup now and then, or to move to a new phone.</p>
+        <div class="tools">
+          <button class="btn" id="exportBackup">Save a backup file</button>
+          <button class="btn" id="importBackup">Load a backup file</button>
+          <input type="file" id="backupFile" class="backup-file" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="cTitle">
+  <div class="card">
+    <div class="kicker" id="cKicker">Hatch #1</div>
+    <div class="stage" id="stage"></div>
+    <h3 id="cTitle">Something is hatching…</h3>
+    <p id="cText"></p>
+    <div class="tools" style="justify-content:center">
+      <button class="btn" id="cClose">Back to work</button>
+      <button class="btn" id="cVisit">Play in the nursery</button>
+    </div>
+  </div>
+</div>
+<canvas id="confetti" hidden></canvas>
+
+<script src="app.js"></script>
+</body>
+</html>
