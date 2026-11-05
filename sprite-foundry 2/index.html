@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Sprite Foundry</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: workbench — parts drawer | canvas | preview & output, stacking to one column on phones */
+:root{
+  --bg:#e9e6f0; --panel:#fbfaff; --panel-2:#f1eef7; --ink:#211b2e; --muted:#676176;
+  --line:#d6d0e2; --accent:#2f56e0; --accent-ink:#ffffff; --sel:#ffbf1f;
+  --check-a:#ffffff; --check-b:#ece8f3; --gridline:rgba(33,27,46,.10); --danger:#c23b3b;
+  --f-display:"Silkscreen", ui-monospace, monospace;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14121b; --panel:#1d1a27; --panel-2:#262232; --ink:#ebe7f5; --muted:#9c95ad;
+  --line:#353047; --accent:#7f9bff; --accent-ink:#0f0d16; --sel:#ffcf4a;
+  --check-a:#2a2638; --check-b:#231f30; --gridline:rgba(235,231,245,.09); --danger:#ff7a7a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14121b; --panel:#1d1a27; --panel-2:#262232; --ink:#ebe7f5; --muted:#9c95ad;
+  --line:#353047; --accent:#7f9bff; --accent-ink:#0f0d16; --sel:#ffcf4a;
+  --check-a:#2a2638; --check-b:#231f30; --gridline:rgba(235,231,245,.09); --danger:#ff7a7a; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 32px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;max-width:1440px;margin:0 auto 14px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.02em;margin:0;line-height:1}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.logo{width:32px;height:32px;image-rendering:pixelated}
+.seg{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:6px;font-weight:700;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 0 var(--line),0 0 0 1px var(--line)}
+.seg button .dim{font-family:var(--f-mono);font-weight:400;font-size:11px;margin-left:6px;opacity:.75}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 11px;border-radius:7px;font-weight:700;font-size:13px;
+  box-shadow:0 2px 0 var(--line);transition:transform .05s}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 2px 0 color-mix(in srgb,var(--accent) 55%,#000)}
+.layout{display:grid;gap:16px;max-width:1440px;margin:0 auto;
+  grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(250px,290px);grid-template-areas:"parts stage side";align-items:start}
+@media (max-width:1120px){.layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"stage stage" "parts side"}}
+@media (max-width:720px){.layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "parts" "side"}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
+.label{font-family:var(--f-display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+/* parts */
+.parts{grid-area:parts;display:flex;flex-direction:column}
+.parts .head{padding:14px 14px 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.presets{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.preset{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:4px 8px 4px 4px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;white-space:nowrap}
+.preset canvas{width:32px;height:32px;image-rendering:pixelated}
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;padding:14px}
+.opt{border:2px solid transparent;background:var(--panel-2);border-radius:8px;padding:6px 4px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;color:var(--muted)}
+.opt canvas{width:56px;height:56px;image-rendering:pixelated}
+.optw{position:relative;display:flex;min-width:0}
+.optw .opt{flex:1;min-width:0}
+.optw .opt span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.design{margin:0 14px 12px;padding:12px;border:1px dashed var(--line);border-radius:8px;display:flex;flex-direction:column;gap:8px;background:var(--panel-2)}
+.design .btn{align-self:flex-start}
+.opt:hover{border-color:var(--line)}
+.opt[aria-pressed="true"]{border-color:var(--sel);color:var(--ink);font-weight:700;background:var(--panel)}
+.colors{padding:4px 14px 16px;display:flex;flex-direction:column;gap:12px}
+.slot{display:flex;flex-direction:column;gap:6px}
+.slot .row{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.18);padding:0}
+.sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.custom{position:relative;width:22px;height:22px;border-radius:5px;border:1px dashed var(--muted);overflow:hidden;display:inline-grid;place-items:center;font-size:14px;color:var(--muted)}
+.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.hex{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:4px}
+/* stage */
+.stage{grid-area:stage;padding:12px;display:flex;flex-direction:column;gap:10px}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tool{border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:6px 9px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.tool kbd{font-family:var(--f-mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 3px}
+.tool[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tool[aria-pressed="true"] kbd{color:inherit;border-color:currentColor;opacity:.7}
+.sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+.cur{width:28px;height:28px;border-radius:6px;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line)}
+select.sel{border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:5px 6px;font-size:12.5px;font-weight:700}
+.board{display:grid;place-items:center;background:var(--panel-2);border-radius:8px;padding:12px;min-height:280px}
+#cv{display:block;touch-action:none;cursor:crosshair;border-radius:2px;box-shadow:0 0 0 1px var(--line)}
+.status{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+/* side */
+.side{grid-area:side;display:flex;flex-direction:column;gap:16px}
+.side .panel{padding:14px;display:flex;flex-direction:column;gap:10px}
+.prev{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:12px;border-radius:8px}
+.prev canvas{image-rendering:pixelated;display:block}
+.prev figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.prev figcaption{font-family:var(--f-mono);font-size:10px;opacity:.7}
+.bg-checker{background-color:var(--check-a);background-image:conic-gradient(var(--check-b) 25%,transparent 0 50%,var(--check-b) 0 75%,transparent 0);background-size:12px 12px;color:var(--muted)}
+.bg-light{background:#f4f1ea;color:#555}
+.bg-dark{background:#1b1826;color:#aaa}
+.bg-grass{background:#5e9e4a;color:#f2f7ea}
+.rowline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.pal{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.pal .sw{width:100%;height:auto;aspect-ratio:1;max-width:100%}
+.used{display:flex;flex-wrap:wrap;gap:4px;min-height:22px}
+.tag{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.tag strong{font-family:var(--f-display);font-size:15px;letter-spacing:.02em}
+.chk{display:flex;gap:6px;align-items:center;font-size:12.5px}
+.export img{image-rendering:pixelated;max-width:100%;width:160px;height:auto;align-self:center;background-color:var(--check-a);background-image:conic-gradient(var(--check-b) 25%,transparent 0 50%,var(--check-b) 0 75%,transparent 0);background-size:16px 16px;border-radius:6px;border:1px solid var(--line)}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.fields{display:flex;flex-wrap:wrap;gap:8px}
+.fields label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:700}
+.fields label.wide{flex:1 1 100%}
+.fields input[type=number]{width:64px;border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:5px 6px;font-size:12.5px;font-weight:700}
+.fields input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:2px}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px}
+.sheetbox{overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px;background-color:var(--check-a);background-image:conic-gradient(var(--check-b) 25%,transparent 0 50%,var(--check-b) 0 75%,transparent 0);background-size:16px 16px}
+.sheetbox img{display:block;image-rendering:pixelated;max-width:100%}
+.gsave{position:absolute;top:2px;left:2px;border:0;background:transparent;color:var(--muted);font-size:13px;line-height:1;padding:2px 4px;border-radius:4px}
+.gsave:hover{color:var(--accent)}
+.layers{display:flex;flex-direction:column;gap:1px;max-height:300px;overflow:auto}
+.lrow{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-radius:6px}
+.lrow:hover{background:var(--panel-2)}
+.gsave2{border:0;background:transparent;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:4px}
+.gsave2:hover{color:var(--accent)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px}
+.gitem{position:relative;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;min-width:0}
+.gitem img{width:48px;height:48px;image-rendering:pixelated}
+.gitem span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gdel{position:absolute;top:2px;right:2px;border:0;background:transparent;color:var(--muted);font-size:14px;line-height:1;padding:2px 4px;border-radius:4px}
+.gdel:hover{color:var(--danger)}
+.save{display:flex;gap:6px}
+.save input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:6px 8px}
+.empty{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.btn,.toast{transition:none}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <canvas class="logo" id="logo" width="16" height="16" aria-hidden="true"></canvas>
+    <div><h1>Sprite Foundry</h1><small>Build from parts, then paint the details</small></div>
+  </div>
+  <div class="seg" role="group" aria-label="Sprite type">
+    <button id="m-character" aria-pressed="true">Character<span class="dim">32×32</span></button>
+    <button id="m-item" aria-pressed="false">Item<span class="dim">16×16</span></button>
+  </div>
+  <div class="actions">
+    <button class="btn" id="undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button class="btn" id="random">Randomize</button>
+    <button class="btn" id="reset">Reset</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel parts" aria-label="Parts">
+    <div class="head">
+      <p class="label" id="presets-label">Starter looks</p>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="chips" id="chips" role="tablist"></div>
+    <div class="opts" id="opts"></div>
+    <div class="design" id="design"></div>
+    <div class="colors" id="colors"></div>
+  </section>
+
+  <section class="panel stage" aria-label="Canvas">
+    <div class="tag"><p class="label">Label</p><strong id="lbl-name"></strong><span class="hint" id="lbl-detail"></span></div>
+    <div class="tools">
+      <button class="tool" data-tool="pencil" aria-pressed="true">Pencil <kbd>B</kbd></button>
+      <button class="tool" data-tool="eraser" aria-pressed="false">Eraser <kbd>E</kbd></button>
+      <button class="tool" data-tool="fill" aria-pressed="false">Fill <kbd>G</kbd></button>
+      <button class="tool" data-tool="picker" aria-pressed="false">Pick <kbd>I</kbd></button>
+      <span class="sep"></span>
+      <button class="tool" id="mirror" aria-pressed="false">Mirror <kbd>M</kbd></button>
+      <button class="tool" id="gridt" aria-pressed="true">Grid</button>
+      <span class="sep"></span>
+      <label class="label" for="outline" style="font-size:10px">Outline</label>
+      <select class="sel" id="outline"><option value="dark">Dark</option><option value="tint">Tinted</option><option value="none">None</option></select>
+      <button class="tool" id="shading" aria-pressed="true">Auto shade</button>
+      <span class="sep"></span>
+      <select class="sel" id="view" aria-label="View"><option value="front">Front</option><option value="side">Side</option><option value="back">Back</option></select>
+      <span class="cur" id="cur" title="Current color"></span>
+    </div>
+    <div class="board" id="board"><canvas id="cv" aria-label="Pixel canvas"></canvas></div>
+    <div class="status"><span id="pos">Hover the canvas</span><span id="edits">0 painted pixels</span>
+      <button class="btn" id="clear" style="padding:3px 8px;font-size:11.5px">Clear painted pixels</button></div>
+  </section>
+
+  <aside class="side">
+    <section class="panel">
+      <div class="rowline"><p class="label">Preview</p>
+        <div class="rowline" style="gap:6px">
+          <select class="sel" id="bg" aria-label="Preview background"><option value="checker">Checker</option><option value="light">Light</option><option value="dark">Dark</option><option value="grass">Grass</option></select>
+          <select class="sel" id="anim" aria-label="Preview animation"></select>
+        </div></div>
+      <div class="prev bg-checker" id="prev">
+        <figure><canvas id="p1"></canvas><figcaption>1×</figcaption></figure>
+        <figure><canvas id="p2"></canvas><figcaption>2×</figcaption></figure>
+        <figure><canvas id="p4"></canvas><figcaption>4×</figcaption></figure>
+      </div>
+    </section>
+    <section class="panel">
+      <p class="label">Paint colors</p>
+      <div class="pal" id="pal"></div>
+      <div class="rowline"><span class="hint">In this sprite</span>
+        <label class="custom" title="Custom color">+<input type="color" id="pcustom" aria-label="Custom paint color"></label></div>
+      <div class="used" id="used"></div>
+    </section>
+    <section class="panel">
+      <p class="label">Layers</p>
+      <div class="layers" id="layers"></div>
+      <p class="hint">Untick a layer to hide it. Each layer saves as its own transparent PNG at the export scale, all the same size so they stack exactly.</p>
+      <button class="btn needs-save" id="savelayers">Save all layers (.zip)</button>
+    </section>
+    <section class="panel export">
+      <p class="label">Export image</p>
+      <div class="fields">
+        <label>Format<select class="sel" id="fmt"><option value="png">PNG (transparent)</option><option value="jpeg">JPEG</option></select></label>
+        <label>Scale<select class="sel" id="scale"><option value="1">1×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select></label>
+        <label id="jbg-wrap">Background<input type="color" id="jbg" value="#ffffff"></label>
+      </div>
+      <label class="chk"><input type="checkbox" id="lblon"> Print the name label under each sprite</label>
+      <img id="out" alt="Exported sprite">
+      <p class="hint" id="outhint">Right-click or long-press the image to save it.</p>
+      <div class="btnrow"><button class="btn primary needs-save" id="saveimg">Save image</button><button class="btn" id="copy">Copy as PNG</button></div>
+    </section>
+    <section class="panel">
+      <p class="label">Sprite sheet</p>
+      <div class="fields">
+        <label class="wide">Frames<select class="sel" id="ssrc"></select></label>
+        <label id="scols-wrap">Columns<input type="number" id="scols" min="1" max="32" value="4"></label>
+        <label>Gap<select class="sel" id="sgap"><option value="0">0 px</option><option value="1">1 px</option><option value="2">2 px</option></select></label>
+        <label>Scale<select class="sel" id="sscale"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label>
+      </div>
+      <div class="sheetbox"><img id="sheet" alt="Sprite sheet"></div>
+      <p class="hint" id="sheethint"></p>
+      <p class="hint">Uses the format and background set under Export image.</p>
+      <div class="btnrow"><button class="btn primary needs-save" id="savesheet">Save sheet</button><button class="btn needs-save" id="savejson" title="Frame positions and animation rows, for game engines">Save frame data (.json)</button></div>
+    </section>
+    <section class="panel">
+      <p class="label">Saved sprites</p>
+      <form class="save" id="saveform"><input id="sname" placeholder="Name this sprite" maxlength="24" aria-label="Sprite name"><button class="btn primary" type="submit">Save</button></form>
+      <div class="gallery" id="gallery"></div>
+      <button class="btn needs-save" id="saveall">Save all as images (.zip)</button>
+    </section>
+  </aside>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(()=>{
+/* ---------- colour helpers ---------- */
+const h2r=h=>{h=h.replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255]};
+const r2h=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const memo=new Map();
+const mix=(a,b,t)=>{const k=a+b+t;let v=memo.get(k);if(v)return v;const A=h2r(a),B=h2r(b);v=r2h(A.map((x,i)=>x+(B[i]-x)*t));memo.set(k,v);return v};
+const dk=(c,t=.3)=>mix(c,'#1c1433',t), lt=(c,t=.28)=>mix(c,'#fff6dc',t);
+const OUT='#1d1729', INK='#1f1a2b', WHITE='#fbf8f2', TONGUE='#c2475a';
+
+/* ---------- pixel structures ---------- */
+class Grid{constructor(w){this.w=w;this.h=w;this.p=new Array(w*w).fill(null)}
+  ok(x,y){return x>=0&&y>=0&&x<this.w&&y<this.h}
+  set(x,y,c){if(this.ok(x,y))this.p[y*this.w+x]=c}
+  get(x,y){return this.ok(x,y)?this.p[y*this.w+x]:null}
+  clone(){const g=new Grid(this.w);g.p=this.p.slice();return g}}
+class M{constructor(){this.s=new Set()}
+  k(x,y){return x+','+y}
+  add(x,y){this.s.add(x+','+y);return this}
+  has(x,y){return this.s.has(x+','+y)}
+  del(x,y){this.s.delete(x+','+y);return this}
+  rect(x,y,w,h){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)this.add(i,j);return this}
+  cut(x,y,w=1,h=1){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)this.del(i,j);return this}
+  ell(cx,cy,rx,ry){for(let y=Math.floor(cy-ry-1);y<=cy+ry+1;y++)for(let x=Math.floor(cx-rx-1);x<=cx+rx+1;x++){const a=(x+.5-cx)/rx,b=(y+.5-cy)/ry;if(a*a+b*b<=1)this.add(x,y)}return this}
+  pts(a){for(const[x,y]of a)this.add(x,y);return this}
+  line(x0,y0,x1,y1){let dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,e=dx+dy;for(;;){this.add(x0,y0);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>=dy){e+=dy;x0+=sx}if(e2<=dx){e+=dx;y0+=sy}}return this}
+  rows(list){for(const[y,a,b]of list)this.rect(a,y,b-a+1,1);return this}
+  each(f){for(const k of this.s){const i=k.indexOf(',');f(+k.slice(0,i),+k.slice(i+1))}}
+  mirror(W){const a=[...this.s];for(const k of a){const i=k.indexOf(',');this.add(W-1-(+k.slice(0,i)),+k.slice(i+1))}return this}
+  filter(f){const m=new M();this.each((x,y)=>{if(f(x,y))m.add(x,y)});return m}
+  union(o){for(const k of o.s)this.s.add(k);return this}
+  minus(o){for(const k of o.s)this.s.delete(k);return this}}
+const fill=(g,m,c)=>m.each((x,y)=>g.set(x,y,c));
+function shaded(g,m,base,R){const sh=dk(base),li=lt(base,.22),half=g.w/2;
+  m.each((x,y)=>{let c=base;if(R.shading){if(!m.has(x+1,y)||!m.has(x,y+1))c=sh;else if(!m.has(x,y-1)&&x<half)c=li}g.set(x,y,c)})}
+function pat(g,rows,ax,ay,map,mir){rows.forEach((r,j)=>[...r].forEach((ch,i)=>{const c=map[ch];if(!c)return;g.set(ax+i,ay+j,c);if(mir)g.set(g.w-1-(ax+i),ay+j,c)}))}
+
+/* ---------- character parts (32×32) ---------- */
+const TORSO=()=>new M().rect(11,16,10,8).rect(9,16,14,1).rect(8,17,16,1);
+const ARMS=(a,b)=>new M().rect(8,a,2,b-a+1).rect(22,a,2,b-a+1);
+const CAP=()=>new M().ell(16,9.5,7,6.6).filter((x,y)=>y<=7);
+const fist=(g,C,R,w=3)=>shaded(g,new M().rect(10-w,22,w,2),C.skin,R);
+const eyeMap=C=>({D:INK,W:WHITE,E:C.eyes,e:dk(C.eyes),S:dk(C.skin,.25),G:lt(C.eyes,.45)});
+
+const CHAR={size:32,
+ phases:['back','legs','feet','torso','held','neck','ears','head','face','eyewear','hair','earsTop','hat','front'],
+ cats:[
+ {id:'base',hidden:true,opts:[{id:'b',
+   legs:(g,C,R)=>shaded(g,new M().rect(11,24,4,5).rect(17,24,4,5),C.skin,R),
+   feet:(g,C,R)=>shaded(g,new M().rect(11,29,4,2).add(10,30).mirror(32),C.skin,R),
+   torso:(g,C,R)=>shaded(g,TORSO().union(ARMS(18,23)),C.skin,R),
+   neck:(g,C)=>fill(g,new M().rect(14,14,4,2),dk(C.skin))}]},
+ {id:'back',name:'Back',slots:['back'],focus:[0,4,32,28],opts:[
+   {id:'none',name:'None'},
+   {id:'cape',name:'Cape',back(g,C,R){const m=new M();for(let y=16;y<=29;y++){const l=9-Math.floor((y-16)/4);m.rect(l,y,32-2*l,1)}shaded(g,m,C.back,R)}},
+   {id:'wings',name:'Wings',back(g,C,R){const m=new M().rows([[9,6,8],[10,4,8],[11,2,8],[12,1,8],[13,0,8],[14,0,8],[15,1,8],[16,1,8],[17,2,8],[18,2,8],[19,3,8],[20,4,8],[21,5,8]]).mirror(32);
+     shaded(g,m,C.back,R);fill(g,m.filter((x,y)=>(y===14||y===17||y===20)&&m.has(x-1,y)&&m.has(x+1,y)),dk(C.back,.22))}},
+   {id:'bat',name:'Bat wings',back(g,C,R){const m=new M().rows([[7,7,8],[8,5,8],[9,3,8],[10,2,8],[11,1,8],[12,0,8],[13,0,8],[14,0,8],[15,0,0],[15,2,3],[15,5,8],[16,3,3],[16,6,8],[17,7,8]]).mirror(32);
+     shaded(g,m,C.back,R);const b=new M().line(8,8,1,12).line(8,10,3,15).line(8,12,6,16).mirror(32);fill(g,b.filter((x,y)=>m.has(x,y)),dk(C.back,.45))}},
+   {id:'quiver',name:'Quiver',back(g,C,R){const m=new M();for(let t=0;t<14;t++)m.rect(21+Math.round(t*.25),10+t,3,1);shaded(g,m,C.back,R);
+     fill(g,new M().pts([[22,7],[22,8],[22,9],[24,6],[24,7],[24,8],[24,9]]),'#e8dcc0');fill(g,new M().pts([[22,6],[24,5]]),'#d64545')}},
+   {id:'pack',name:'Backpack',back(g,C,R){shaded(g,new M().rect(7,17,18,8),C.back,R)},
+     front(g,C){fill(g,new M().rect(12,16,1,5).mirror(32),dk(C.back,.45))}}]},
+ {id:'bottom',name:'Bottom',slots:['bottom'],focus:[4,14,24,18],opts:[
+   {id:'trousers',name:'Trousers',legs:(g,C,R)=>shaded(g,new M().rect(11,24,10,2).rect(11,26,4,3).rect(17,26,4,3),C.bottom,R)},
+   {id:'shorts',name:'Shorts',legs:(g,C,R)=>shaded(g,new M().rect(11,24,10,2).rect(11,26,4,1).rect(17,26,4,1),C.bottom,R)},
+   {id:'skirt',name:'Skirt',legs:(g,C,R)=>shaded(g,new M().rect(11,24,10,1).rect(10,25,12,2),C.bottom,R)},
+   {id:'wide',name:'Wide pants',legs:(g,C,R)=>shaded(g,new M().rect(10,24,12,2).rect(10,26,5,3).rect(17,26,5,3),C.bottom,R)},
+   {id:'bare',name:'Bare legs'}]},
+ {id:'shoes',name:'Shoes',slots:['shoes'],focus:[4,16,24,16],opts:[
+   {id:'boots',name:'Boots',feet(g,C,R){shaded(g,new M().rect(11,27,4,4).add(10,29).add(10,30).mirror(32),C.shoes,R);fill(g,new M().rect(11,27,4,1).mirror(32),lt(C.shoes,.25))}},
+   {id:'sneakers',name:'Sneakers',feet(g,C,R){shaded(g,new M().rect(11,29,4,1).rect(10,30,5,1).mirror(32),C.shoes,R);fill(g,new M().rect(10,30,5,1).mirror(32),'#efebe4')}},
+   {id:'sandals',name:'Sandals',feet(g,C){fill(g,new M().pts([[12,29],[13,29]]).mirror(32),C.shoes);fill(g,new M().rect(10,30,5,1).mirror(32),dk(C.shoes))}},
+   {id:'bare',name:'Barefoot'}]},
+ {id:'top',name:'Top',slots:['top','top2'],focus:[2,12,28,20],opts:[
+   {id:'tunic',name:'Tunic',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,19)).rect(11,24,10,2),C.top,R);fill(g,new M().rect(11,22,10,1),C.top2);fill(g,new M().pts([[15,22],[16,22]]),'#f2c14e');fill(g,new M().pts([[15,16],[16,16]]),dk(C.skin))}},
+   {id:'tee',name:'T-shirt',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,19)),C.top,R);fill(g,new M().pts([[15,16],[16,16]]),dk(C.skin));fill(g,ARMS(19,19),C.top2)}},
+   {id:'long',name:'Long sleeve',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,21)),C.top,R);fill(g,ARMS(21,21),C.top2)}},
+   {id:'tank',name:'Tank top',torso(g,C,R){shaded(g,new M().rect(11,17,10,7).rect(12,16,2,1).rect(18,16,2,1),C.top,R)}},
+   {id:'hoodie',name:'Hoodie',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,21)),C.top,R);fill(g,new M().rect(11,15,3,1).mirror(32),dk(C.top));fill(g,new M().rect(13,21,6,2),dk(C.top,.2));fill(g,new M().pts([[14,17],[14,18],[17,17],[17,18]]),C.top2)}},
+   {id:'jacket',name:'Jacket',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,21)),C.top,R);shaded(g,new M().rect(14,16,4,8),C.top2,R);fill(g,new M().pts([[13,16],[13,17],[18,16],[18,17]]),lt(C.top,.3))}},
+   {id:'armor',name:'Armor',torso(g,C,R){shaded(g,ARMS(18,21),dk(C.top,.25),R);shaded(g,TORSO(),C.top,R);shaded(g,new M().ell(9.5,17,2.6,2.1).mirror(32),lt(C.top,.12),R);
+     fill(g,new M().rect(11,23,10,1),C.top2);fill(g,new M().pts([[15,23],[16,23]]),'#f2c14e');fill(g,new M().pts([[13,18],[13,19],[14,18]]),lt(C.top,.5))}},
+   {id:'robe',name:'Robe',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,21)).rect(7,21,3,1).rect(22,21,3,1).rect(11,24,10,2).rect(10,26,12,3),C.top,R);fill(g,new M().rect(15,17,2,12),C.top2);fill(g,new M().rect(10,28,12,1),C.top2)}},
+   {id:'dress',name:'Dress',torso(g,C,R){shaded(g,TORSO().union(ARMS(18,18)),C.top,R);shaded(g,new M().rect(11,22,10,1).rect(10,23,12,2).rect(9,25,14,3),C.top,R);fill(g,new M().rect(11,21,10,1),C.top2);fill(g,new M().rect(9,27,14,1),C.top2);fill(g,new M().pts([[15,16],[16,16]]),dk(C.skin))}}]},
+ {id:'held',name:'Held item',slots:['item','item2'],focus:[0,2,24,28],opts:[
+   {id:'none',name:'Empty'},
+   {id:'sword',name:'Sword',held(g,C,R){fill(g,new M().rect(6,11,1,10),lt(C.item,.35));fill(g,new M().rect(7,11,1,10).add(7,10),C.item);
+     shaded(g,new M().rect(4,21,6,1),C.item2,R);fill(g,new M().rect(6,22,2,2),'#5c3a22');fill(g,new M().rect(6,24,2,1),C.item2);fist(g,C,R)}},
+   {id:'staff',name:'Staff',held(g,C,R){fill(g,new M().rect(6,8,1,22),C.item2);shaded(g,new M().ell(6.5,5,2.3,2.3),C.item,R);g.set(5,4,'#ffffff');fist(g,C,R,4)}},
+   {id:'shield',name:'Shield',held(g,C,R){const o=new M().ell(8,22,4,4.6),i=new M().ell(8,22,3,3.6);shaded(g,o,C.item2,R);shaded(g,i,C.item,R);fill(g,new M().rect(7,21,2,2),lt(C.item2,.35))}},
+   {id:'torch',name:'Torch',held(g,C,R){fill(g,new M().rect(6,17,2,11),C.item2);fill(g,new M().ell(7,13.5,2.4,3.4),'#f08a24');fill(g,new M().ell(7,14.5,1.2,2),'#ffd54a');fist(g,C,R)}},
+   {id:'wand',name:'Wand',held(g,C,R){fill(g,new M().line(5,18,8,21),C.item2);fill(g,new M().pts([[3,17],[5,17],[4,16],[4,18]]),lt(C.item,.4));g.set(4,17,C.item);fist(g,C,R)}}]},
+ {id:'ears',name:'Ears',slots:['skin','hair'],focus:[2,0,28,20],opts:[
+   {id:'human',name:'Human',ears(g,C,R){shaded(g,new M().rect(9,9,1,3).mirror(32),C.skin,R)}},
+   {id:'elf',name:'Elf',ears(g,C,R){shaded(g,new M().pts([[9,9],[9,10],[9,11],[8,8],[8,9],[8,10],[7,7],[7,8],[6,6]]).mirror(32),C.skin,R)}},
+   {id:'cat',name:'Cat',earsTop(g,C,R){shaded(g,new M().rows([[1,10,10],[2,10,11],[3,10,12],[4,10,13]]).mirror(32),C.hair,R);fill(g,new M().pts([[11,3],[11,4],[12,4]]).mirror(32),'#f2a3b3')}},
+   {id:'bunny',name:'Bunny',earsTop(g,C,R){shaded(g,new M().ell(12,2,1.6,4).mirror(32),C.hair,R);fill(g,new M().rect(12,0,1,4).mirror(32),'#f2a3b3')}},
+   {id:'none',name:'Hidden'}]},
+ {id:'head',name:'Head',slots:['skin'],focus:[4,0,24,20],opts:[
+   {id:'round',name:'Round',head:(g,C,R)=>shaded(g,new M().ell(16,10,6.5,6.3),C.skin,R)},
+   {id:'square',name:'Square',head:(g,C,R)=>shaded(g,new M().rect(10,4,12,12).cut(10,4).cut(21,4).cut(10,15).cut(21,15),C.skin,R)},
+   {id:'oval',name:'Oval',head:(g,C,R)=>shaded(g,new M().ell(16,9.8,5.7,6.6),C.skin,R)},
+   {id:'wide',name:'Wide',head:(g,C,R)=>shaded(g,new M().ell(16,10.5,7.5,5.6),C.skin,R)},
+   {id:'pointed',name:'Pointed chin',head:(g,C,R)=>shaded(g,new M().rect(10,4,12,9).cut(10,4).cut(21,4).rect(11,13,10,1).rect(12,14,8,1).rect(13,15,6,1),C.skin,R)}]},
+ {id:'eyes',name:'Eyes',slots:['eyes'],focus:[8,4,16,14],opts:[
+   {id:'round',name:'Round',face:(g,C)=>pat(g,['...','.WE','.EE'],11,8,eyeMap(C),1)},
+   {id:'dots',name:'Dots',face:(g,C)=>pat(g,['...','..D','..D'],11,8,eyeMap(C),1)},
+   {id:'anime',name:'Anime',face:(g,C)=>pat(g,['.DD','DWE','.Ee'],11,8,eyeMap(C),1)},
+   {id:'sleepy',name:'Sleepy',face:(g,C)=>pat(g,['...','.SS','.DD'],11,8,eyeMap(C),1)},
+   {id:'happy',name:'Happy',face:(g,C)=>pat(g,['...','.D.','D.D'],11,8,eyeMap(C),1)},
+   {id:'angry',name:'Fierce',face:(g,C)=>pat(g,['D..','.DD','.WE'],11,8,eyeMap(C),1)},
+   {id:'glow',name:'Glowing',face:(g,C)=>pat(g,['...','.GG','.EE'],11,8,eyeMap(C),1)}]},
+ {id:'mouth',name:'Mouth',slots:['skin'],focus:[8,4,16,14],opts:[
+   {id:'smile',name:'Smile',face:(g,C)=>pat(g,['D..D','.DD.'],14,12,{D:dk(C.skin,.55)})},
+   {id:'grin',name:'Grin',face:(g,C)=>pat(g,['DDDD','DWWD','.DD.'],14,12,{D:dk(C.skin,.6),W:WHITE})},
+   {id:'neutral',name:'Neutral',face:(g,C)=>pat(g,['....','.DD.'],14,12,{D:dk(C.skin,.5)})},
+   {id:'frown',name:'Frown',face:(g,C)=>pat(g,['.DD.','D..D'],14,12,{D:dk(C.skin,.55)})},
+   {id:'gasp',name:'Gasp',face:(g,C)=>pat(g,['.DD.','.RR.'],14,12,{D:dk(C.skin,.6),R:TONGUE})},
+   {id:'fangs',name:'Fangs',face:(g,C)=>pat(g,['DDDD','W..W'],14,12,{D:dk(C.skin,.6),W:WHITE})},
+   {id:'silly',name:'Tongue out',face:(g,C)=>pat(g,['D..D','.DD.','..R.'],14,12,{D:dk(C.skin,.55),R:TONGUE})}]},
+ {id:'face',name:'Face',slots:['hair'],focus:[6,4,20,16],opts:[
+   {id:'none',name:'Plain'},
+   {id:'blush',name:'Blush',face:(g,C)=>fill(g,new M().rect(11,12,2,1).mirror(32),mix(C.skin,'#f06a7a',.45))},
+   {id:'freckles',name:'Freckles',face:(g,C)=>fill(g,new M().pts([[11,12],[13,12],[12,13]]).mirror(32),dk(C.skin,.25))},
+   {id:'whiskers',name:'Whiskers',face:(g,C)=>fill(g,new M().pts([[9,12],[10,12],[9,14],[10,13]]).mirror(32),dk(C.skin,.6))},
+   {id:'mustache',name:'Mustache',face:(g,C,R)=>shaded(g,new M().rect(13,12,6,1).pts([[12,13],[19,13]]),C.hair,R)},
+   {id:'beard',name:'Beard',face(g,C,R){shaded(g,new M().ell(16,11,7,5.5).filter((x,y)=>y>=12).union(new M().rect(10,9,1,3).mirror(32)).cut(15,13,2,1),C.hair,R);fill(g,new M().rect(15,13,2,1),dk(C.skin,.6))}},
+   {id:'scar',name:'Scar',face:(g)=>fill(g,new M().pts([[19,11],[20,12],[21,13]]),'#c46a6a')}]},
+ {id:'eyewear',name:'Eyewear',slots:['glasses'],focus:[6,4,20,14],opts:[
+   {id:'none',name:'None'},
+   {id:'round',name:'Glasses',eyewear(g,C){fill(g,new M().rect(10,8,5,5).cut(11,9,3,3).cut(10,8).cut(14,8).cut(10,12).cut(14,12).mirror(32).pts([[15,10],[16,10]]),C.glasses)}},
+   {id:'shades',name:'Shades',eyewear(g,C){fill(g,new M().rect(10,9,5,2).mirror(32).pts([[15,9],[16,9]]),C.glasses);fill(g,new M().pts([[11,9],[18,9]]),lt(C.glasses,.55))}},
+   {id:'patch',name:'Eyepatch',eyewear(g,C){fill(g,new M().rect(18,9,3,3).pts([[17,8],[16,8],[15,7],[14,7],[13,6],[12,6],[11,6],[10,6],[21,8]]),C.glasses)}},
+   {id:'monocle',name:'Monocle',eyewear(g,C){fill(g,new M().rect(17,8,5,5).cut(18,9,3,3).cut(17,8).cut(21,8).cut(17,12).cut(21,12).pts([[21,13],[21,14],[22,15]]),C.glasses)}},
+   {id:'goggles',name:'Goggles',eyewear(g,C){fill(g,new M().rect(9,8,14,4),C.glasses);fill(g,new M().rect(11,9,3,2).mirror(32),'#8fe0ef');fill(g,new M().pts([[11,9],[18,9]]),'#e6fbff')}}]},
+ {id:'hair',name:'Hair',slots:['hair'],focus:[2,0,28,24],opts:[
+   {id:'short',name:'Short',hair:(g,C,R)=>shaded(g,CAP().union(new M().rect(9,8,2,2).mirror(32)).pts([[11,8],[12,8],[14,8],[15,8]]),C.hair,R)},
+   {id:'spiky',name:'Spiky',hair:(g,C,R)=>shaded(g,CAP().union(new M().pts([[11,2],[12,2],[12,1],[14,2],[15,2],[15,1],[15,0],[9,5],[8,4],[10,8],[11,8],[13,8],[10,9]]).mirror(32)),C.hair,R)},
+   {id:'bob',name:'Bob',hair:(g,C,R)=>shaded(g,CAP().union(new M().rect(9,8,2,6).rect(11,8,3,1).add(9,14).mirror(32)),C.hair,R)},
+   {id:'long',name:'Long',back:(g,C,R)=>shaded(g,new M().rect(8,8,16,13).cut(8,20).cut(23,20),C.hair,R),
+     hair:(g,C,R)=>shaded(g,CAP().union(new M().rect(9,8,2,9).rect(11,8,2,1).mirror(32)),C.hair,R)},
+   {id:'ponytail',name:'Ponytail',back:(g,C,R)=>shaded(g,new M().rect(22,6,2,3).rect(23,8,2,6).rect(22,13,2,3),C.hair,R),
+     hair(g,C,R){shaded(g,CAP().union(new M().rect(9,8,2,2).mirror(32)).pts([[11,8],[12,8],[13,8]]),C.hair,R);g.set(22,7,dk(C.hair,.5))}},
+   {id:'side',name:'Side swept',hair:(g,C,R)=>shaded(g,CAP().union(new M().rect(9,8,1,3).mirror(32)).rect(10,8,8,1).rect(10,9,5,1).rect(10,10,2,1),C.hair,R)},
+   {id:'bun',name:'Bun',hair:(g,C,R)=>shaded(g,CAP().union(new M().ell(16,2.2,2.6,2.2)).union(new M().rect(9,8,2,4).rect(11,8,2,1).mirror(32)),C.hair,R)},
+   {id:'curly',name:'Curly',back(g,C,R){const m=new M().ell(16,8,9.5,8).filter((x,y)=>y<=13);shaded(g,m,C.hair,R);fill(g,m.filter((x,y)=>(x*3+y*5)%7===0),dk(C.hair,.2))},
+     hair(g,C,R){const m=CAP().union(new M().pts([[10,8],[11,8],[13,8],[9,9],[9,10]]).mirror(32));shaded(g,m,C.hair,R);fill(g,m.filter((x,y)=>(x*3+y*5)%7===0),lt(C.hair,.25))}},
+   {id:'mohawk',name:'Mohawk',hair(g,C,R){shaded(g,new M().rect(14,2,4,6).rect(15,1,2,1),C.hair,R);fill(g,new M().pts([[11,6],[12,5],[11,8]]).mirror(32),dk(C.skin,.15))}},
+   {id:'bald',name:'Bald',hair(g,C){g.set(13,5,lt(C.skin,.5));g.set(14,5,lt(C.skin,.35))}}]},
+ {id:'hat',name:'Headwear',slots:['hat','hat2'],focus:[2,0,28,22],opts:[
+   {id:'none',name:'None'},
+   {id:'wizard',name:'Wizard',hat(g,C,R){const c=new M().rows([[0,15,16],[1,15,16],[2,14,17],[3,14,17],[4,13,18],[5,12,19],[6,11,20]]);shaded(g,c,C.hat,R);
+     shaded(g,new M().rect(7,7,18,1).rect(9,8,14,1),dk(C.hat,.15),R);fill(g,new M().rect(11,6,10,1),C.hat2);g.set(14,3,lt(C.hat2,.4))}},
+   {id:'crown',name:'Crown',hat(g,C,R){shaded(g,new M().rect(10,4,12,3).pts([[10,3],[10,2],[13,3],[15,3],[15,2],[15,1]]).mirror(32),C.hat,R);fill(g,new M().pts([[12,5],[15,5]]).mirror(32),C.hat2)}},
+   {id:'cap',name:'Cap',hat(g,C,R){shaded(g,new M().ell(16,7.5,7,4.6).filter((x,y)=>y<=7),C.hat,R);shaded(g,new M().rect(8,8,16,1),dk(C.hat2,.1),R);fill(g,new M().rect(15,5,2,1),C.hat2)}},
+   {id:'beanie',name:'Beanie',hat(g,C,R){shaded(g,new M().ell(16,8,7.2,5.5).filter((x,y)=>y<=8),C.hat,R);const b=new M().rect(9,7,14,2);shaded(g,b,C.hat2,R);fill(g,b.filter(x=>x%2===0),dk(C.hat2,.18));shaded(g,new M().ell(16,1.5,1.7,1.6),C.hat2,R)}},
+   {id:'tophat',name:'Top hat',hat(g,C,R){shaded(g,new M().rect(11,0,10,6),C.hat,R);fill(g,new M().rect(11,5,10,1),C.hat2);shaded(g,new M().rect(8,6,16,2),dk(C.hat,.1),R)}},
+   {id:'viking',name:'Horned helm',hat(g,C,R){shaded(g,new M().pts([[8,6],[7,5],[7,4],[6,3],[6,2],[7,1]]).mirror(32),'#efe3c4',R);shaded(g,new M().ell(16,8,7,5.2).filter((x,y)=>y<=7),C.hat,R);shaded(g,new M().rect(9,7,14,2),C.hat2,R);shaded(g,new M().rect(15,9,2,3),C.hat2,R)}},
+   {id:'knight',name:'Knight helm',hat(g,C,R){shaded(g,new M().ell(16,10,7.2,7.2).filter((x,y)=>y>=3),C.hat,R);fill(g,new M().rect(11,10,10,1),INK);fill(g,new M().pts([[13,13],[13,14],[15,13],[15,14]]).mirror(32),dk(C.hat,.45));shaded(g,new M().rect(15,0,2,3).add(17,1).add(17,0),C.hat2,R)}},
+   {id:'hood',name:'Hood',hat(g,C,R){shaded(g,new M().ell(16,10,8.2,8).filter((x,y)=>y<=16).minus(new M().ell(16,10.8,5.2,5.4)).rect(9,16,14,2),C.hat,R);fill(g,new M().ell(16,10.8,6,6.2).minus(new M().ell(16,10.8,5.2,5.4)).filter((x,y)=>y<=14),dk(C.hat,.35))}},
+   {id:'band',name:'Headband',hat(g,C,R){shaded(g,new M().rect(10,6,12,2).pts([[22,7],[23,8],[24,8],[23,9]]),C.hat,R)}},
+   {id:'flower',name:'Flower',hat(g,C){fill(g,new M().pts([[20,3],[19,4],[21,4],[20,5]]),C.hat);g.set(20,4,C.hat2)}},
+   {id:'halo',name:'Halo',hat(g,C,R){shaded(g,new M().ell(16,1.6,5.5,1.6).minus(new M().ell(16,1.6,3.5,.7)),C.hat2,R)}}]}
+ ]};
+
+/* ---------- items (16×16) ---------- */
+const GLASS='#dbe9f2';
+const ITEMS=[
+ {id:'sword',name:'Sword',d:{p:'#cfd8e3',s:'#8a5534',a:'#e04a5f'},draw(g,C,R){fill(g,new M().line(13,2,6,9).add(14,1),lt(C.p,.35));fill(g,new M().line(13,3,7,9),C.p);fill(g,new M().line(14,2,8,8).filter((x,y)=>false),C.p);
+   shaded(g,new M().line(4,8,8,12),C.s,R);fill(g,new M().line(5,11,3,13),dk(C.s,.3));fill(g,new M().pts([[2,13],[1,14],[2,14]]),C.a)}},
+ {id:'axe',name:'Axe',d:{p:'#b8c2cc',s:'#8a5534',a:'#e04a5f'},draw(g,C,R){fill(g,new M().line(2,14,11,5),C.s);g.set(3,13,dk(C.s));shaded(g,new M().ell(12.5,5.5,3.2,4.6).minus(new M().ell(9.2,5.5,1.6,2.6)),C.p,R);fill(g,new M().pts([[10,4],[11,5]]),C.a)}},
+ {id:'staff',name:'Staff',d:{p:'#c9d3dd',s:'#6e4a32',a:'#7ad7f0'},draw(g,C,R){fill(g,new M().line(2,14,10,6),C.s);fill(g,new M().pts([[9,4],[10,3],[13,7],[14,6]]),C.p);shaded(g,new M().ell(12,4,2.6,2.6),C.a,R);g.set(11,3,'#ffffff')}},
+ {id:'bow',name:'Bow',d:{p:'#e9e4da',s:'#9b6a43',a:'#3fae6a'},draw(g,C,R){const m=new M();for(let y=1;y<=14;y++){m.add(Math.round(10-6*Math.sin(Math.PI*(y-1)/13)),y)}m.line(10,1,9,2).line(10,14,9,13);shaded(g,new M().union(m).union(new M().pts([[5,3],[4,4],[4,11],[5,12]])),C.s,R);fill(g,new M().rect(11,1,1,14),C.p);fill(g,new M().rect(4,7,1,2).rect(3,7,1,2),C.a)}},
+ {id:'shield',name:'Shield',d:{p:'#3f6fd6',s:'#cfd8e3',a:'#f2c14e'},draw(g,C,R){const o=new M().rows([[2,3,12],[3,3,12],[4,3,12],[5,3,12],[6,3,12],[7,3,12],[8,3,12],[9,3,12],[10,4,11],[11,5,10],[12,6,9],[13,7,8]]);shaded(g,o,C.s,R);shaded(g,new M().rows([[3,4,11],[4,4,11],[5,4,11],[6,4,11],[7,4,11],[8,4,11],[9,5,10],[10,5,10],[11,6,9],[12,7,8]]),C.p,R);fill(g,new M().rect(7,4,2,8).rect(5,6,6,2),C.a)}},
+ {id:'potion',name:'Potion',d:{p:GLASS,s:'#9b6a43',a:'#e0414f'},draw(g,C,R){shaded(g,new M().rect(7,1,2,2),C.s,R);fill(g,new M().rect(7,3,2,2),C.p);const b=new M().ell(8,9.5,5,4.6);shaded(g,b,C.p,R);shaded(g,b.filter((x,y)=>y>=8),C.a,R);fill(g,new M().rect(6,8,4,1),lt(C.a,.35));fill(g,new M().pts([[5,9],[5,10],[6,7]]),'#ffffff')}},
+ {id:'gem',name:'Gem',d:{p:'#41c5d6',s:'#ffffff',a:'#ffffff'},draw(g,C,R){const m=new M().rows([[4,5,10],[5,4,11],[6,3,12],[7,4,11],[8,5,10],[9,6,9],[10,7,8],[11,7,8]]);fill(g,m,C.p);fill(g,m.filter((x,y)=>x>=8&&y>=7),dk(C.p,.25));fill(g,new M().rect(5,4,6,1),lt(C.p,.4));fill(g,new M().rows([[5,6,7],[6,5,6]]),lt(C.p,.55));g.set(6,5,'#ffffff')}},
+ {id:'key',name:'Key',d:{p:'#f2c14e',s:'#c38f1e',a:'#e04a5f'},draw(g,C,R){shaded(g,new M().ell(4.5,4.5,3.2,3.2).minus(new M().ell(4.5,4.5,1.3,1.3)),C.p,R);fill(g,new M().line(6,6,13,13).line(7,6,13,12),C.p);fill(g,new M().line(7,7,13,13),dk(C.p,.25));fill(g,new M().pts([[11,13],[10,14],[13,11],[14,10]]),C.p);g.set(3,2,'#ffffff')}},
+ {id:'coin',name:'Coin',d:{p:'#f2c14e',s:'#c38f1e',a:'#fff3c2'},draw(g,C,R){shaded(g,new M().ell(8,8,6,6),C.p,R);fill(g,new M().ell(8,8,4.6,4.6).minus(new M().ell(8,8,3.6,3.6)),dk(C.p,.2));fill(g,new M().rect(7,5,2,6),lt(C.p,.4));fill(g,new M().rect(7,5,1,6),C.a)}},
+ {id:'apple',name:'Apple',d:{p:'#d93a3a',s:'#6b4a2f',a:'#52b44b'},draw(g,C,R){shaded(g,new M().ell(8,9,5.5,5).cut(7,4,2,1),C.p,R);fill(g,new M().pts([[8,2],[8,3],[7,4]]),C.s);fill(g,new M().pts([[9,2],[10,2],[10,1],[11,1]]),C.a);fill(g,new M().pts([[5,7],[5,8],[6,6]]),lt(C.p,.55))}},
+ {id:'scroll',name:'Scroll',d:{p:'#efe2c0',s:'#b0844f',a:'#8a6a4a'},draw(g,C,R){shaded(g,new M().rect(4,4,8,8),C.p,R);shaded(g,new M().rect(2,3,12,2),C.s,R);shaded(g,new M().rect(2,11,12,2),C.s,R);fill(g,new M().rect(5,6,6,1).rect(5,8,5,1),C.a)}},
+ {id:'ring',name:'Ring',d:{p:'#f2c14e',s:'#c38f1e',a:'#e04a8f'},draw(g,C,R){shaded(g,new M().ell(8,10,5,4).minus(new M().ell(8,10,3,2.3)),C.p,R);shaded(g,new M().ell(8,5,2,1.9),C.a,R);g.set(7,4,'#ffffff')}},
+ {id:'heart',name:'Heart',d:{p:'#e8445a',s:'#ffffff',a:'#ffffff'},draw(g,C,R){shaded(g,new M().rows([[4,3,6],[4,9,12],[5,2,13],[6,2,13],[7,2,13],[8,3,12],[9,4,11],[10,5,10],[11,6,9],[12,7,8]]),C.p,R);fill(g,new M().pts([[4,5],[4,6],[5,5]]),lt(C.p,.6))}},
+ {id:'book',name:'Book',d:{p:'#7a3fb8',s:'#f1ead8',a:'#f2c14e'},draw(g,C,R){shaded(g,new M().rect(3,2,10,12),C.p,R);fill(g,new M().rect(3,2,1,12),dk(C.p,.3));fill(g,new M().rect(12,3,1,10),C.s);fill(g,new M().pts([[8,5],[7,6],[9,6],[6,7],[10,7],[7,8],[9,8],[8,9]]),C.a)}},
+ {id:'mushroom',name:'Mushroom',d:{p:'#d9433a',s:'#efe3cf',a:'#fbf3e4'},draw(g,C,R){shaded(g,new M().rect(6,9,4,5),C.s,R);shaded(g,new M().ell(8,8.5,6.5,5.5).filter((x,y)=>y<=8),C.p,R);fill(g,new M().pts([[5,5],[5,6],[9,4],[10,4],[11,7],[7,7]]),C.a)}},
+ {id:'dagger',name:'Dagger',d:{p:'#cfd8e3',s:'#5c3a22',a:'#41c5d6'},draw(g,C,R){fill(g,new M().line(12,3,8,7).add(13,2),lt(C.p,.35));fill(g,new M().line(12,4,9,7),C.p);shaded(g,new M().line(5,6,9,10),C.s,R);fill(g,new M().line(6,9,4,11),dk(C.s,.3));fill(g,new M().pts([[3,12],[3,11],[2,12]]),C.a)}},
+ {id:'pickaxe',name:'Pickaxe',d:{p:'#b8c2cc',s:'#8a5534',a:'#41c5d6'},draw(g,C,R){fill(g,new M().line(2,14,10,6),C.s);g.set(3,13,dk(C.s));shaded(g,new M().pts([[3,5],[4,4],[5,3],[6,3],[7,2],[8,2],[9,2],[10,2],[11,3],[12,3],[12,4],[13,5],[13,6],[14,7],[14,8],[15,9],[6,4],[7,3],[8,3],[9,3],[10,3],[11,4],[12,5],[13,7]]),C.p,R);g.set(10,5,C.a)}},
+ {id:'hammer',name:'Hammer',d:{p:'#8a8f9a',s:'#8a5534',a:'#f2c14e'},draw(g,C,R){fill(g,new M().line(2,14,9,7),C.s);shaded(g,new M().line(7,3,12,8).line(8,3,13,8).line(7,4,12,9).line(6,4,11,9).line(6,5,11,10),C.p,R);fill(g,new M().line(8,3,13,8),lt(C.p,.3))}},
+ {id:'shovel',name:'Shovel',d:{p:'#cfd8e3',s:'#8a5534',a:'#5c3a22'},draw(g,C,R){fill(g,new M().line(12,3,6,9),C.s);fill(g,new M().pts([[12,1],[13,1],[13,2],[14,2],[14,3],[11,2],[12,2]]),C.a);shaded(g,new M().ell(4.5,11.5,3,3).pts([[2,14],[1,15],[2,15],[1,14]]),C.p,R)}},
+ {id:'bottle',name:'Bottle',d:{p:'#3f7d3f',s:'#b47750',a:'#f4efe6'},draw(g,C,R){shaded(g,new M().rect(7,1,2,1),C.s,R);shaded(g,new M().rect(7,2,2,3).rect(6,5,4,1).rect(5,6,6,8),C.p,R);fill(g,new M().rect(5,8,6,3),C.a);fill(g,new M().rect(6,9,4,1),dk(C.a,.3));fill(g,new M().pts([[6,6],[6,7],[6,11],[6,12],[7,3]]),lt(C.p,.5))}},
+ {id:'jar',name:'Jar',d:{p:GLASS,s:'#8a5534',a:'#f2c14e'},draw(g,C,R){const b=new M().rect(4,5,8,9).cut(4,13).cut(11,13);shaded(g,b,C.p,R);shaded(g,b.filter((x,y)=>y>=8),C.a,R);shaded(g,new M().rect(4,3,8,2),C.s,R);fill(g,new M().pts([[5,6],[5,7],[5,9],[5,10]]),'#ffffff')}},
+ {id:'bomb',name:'Bomb',d:{p:'#3b3446',s:'#c3c6cf',a:'#f2c14e'},draw(g,C,R){shaded(g,new M().ell(7,10,4.6,4.6),C.p,R);shaded(g,new M().rect(6,4,3,2),C.s,R);fill(g,new M().pts([[9,3],[10,2],[11,2]]),'#8a5534');fill(g,new M().pts([[12,1],[13,2],[12,3],[11,0],[14,1]]),C.a);g.set(12,2,'#ffffff');fill(g,new M().pts([[5,8],[5,9],[6,7]]),lt(C.p,.45))}},
+ {id:'chest',name:'Chest',d:{p:'#9b6a43',s:'#5d6b7a',a:'#f2c14e'},draw(g,C,R){shaded(g,new M().rect(2,7,12,7),C.p,R);shaded(g,new M().rect(3,3,10,1).rect(2,4,12,3),lt(C.p,.12),R);fill(g,new M().rect(2,6,12,1),dk(C.p,.4));fill(g,new M().rect(4,3,1,11).rect(11,3,1,11),C.s);shaded(g,new M().rect(7,6,2,3),C.a,R)}}];
+const ITEM={size:16,phases:['item'],cats:[
+ {id:'type',name:'Type',slots:['p','s','a'],focus:[0,0,16,16],opts:ITEMS.map(t=>({id:t.id,name:t.name,item:t.draw,d:t.d}))},
+ {id:'effect',name:'Effect',slots:['a'],focus:[0,0,16,16],opts:[{id:'none',name:'None'},{id:'glow',name:'Glow',post:'glow'},{id:'sparkle',name:'Sparkles',post:'sparkle'}]}]};
+const DEFS={character:CHAR,item:ITEM};
+
+/* ---------- swatches ---------- */
+const SKIN=['#fbe1c8','#f1c39d','#d9a07a','#b47750','#8a5534','#5c3a22','#9bd49a','#9cc0ea','#c7b1ea','#d8d4c8'];
+const HAIR=['#2a2230','#5a3825','#8b5a2b','#d9a441','#f3dc8c','#c4471f','#e8e6e3','#8a8f9a','#e05a9c','#3fa7d6','#5bbf6a','#7a4fd0'];
+const EYES=['#2d3561','#3d2a1e','#3f7d3f','#2f7fbf','#7a4fd0','#c23b3b','#e8b923','#1d1a26'];
+const CLOTH=['#e04a4a','#e8873a','#f2c14e','#5bb85b','#2e8b74','#41c5d6','#3f6fd6','#2b3a7a','#7a4fd0','#c25595','#f4efe6','#cfd8e3','#8a8f9a','#3b3446','#1d1729','#8a5534','#5c3a22','#b87333'];
+const SLOT={skin:['Skin',SKIN],eyes:['Eyes',EYES],hair:['Hair & fur',HAIR],top:['Main',CLOTH],top2:['Trim',CLOTH],bottom:['Color',CLOTH],shoes:['Color',CLOTH],
+  hat:['Main',CLOTH],hat2:['Trim',CLOTH],back:['Color',CLOTH],item:['Blade / head',CLOTH],item2:['Handle / trim',CLOTH],glasses:['Frame',CLOTH],
+  p:['Main',CLOTH.concat(['#efe2c0',GLASS,'#e8445a'])],s:['Trim',CLOTH.concat(['#efe3cf','#5d6b7a'])],a:['Accent',CLOTH.concat(['#7ad7f0','#e04a8f','#ffffff'])]};
+const PAL=['#1d1729','#3b3446','#5f5a6e','#8a8f9a','#c3c6cf','#f4efe6','#ffffff','#5c3a22','#8a5534','#b47750','#d9a07a','#f1c39d','#fbe1c8','#7a1f2b',
+ '#c23b3b','#e04a4a','#e8873a','#f2c14e','#f7e39b','#1f4d2b','#3f7d3f','#5bb85b','#9bd49a','#2e8b74','#41c5d6','#2b3a7a','#3f6fd6','#7fb2f0','#4b2c7a','#7a4fd0','#c25595','#e88fb6'];
+
+/* ---------- documents ---------- */
+const DEF_CHAR=()=>({sel:{back:'none',bottom:'trousers',shoes:'boots',top:'tunic',held:'sword',ears:'human',head:'round',eyes:'round',mouth:'smile',face:'blush',eyewear:'none',hair:'short',hat:'none'},
+  colors:{skin:'#f1c39d',eyes:'#2d3561',hair:'#5a3825',top:'#2e8b74',top2:'#5c3a22',bottom:'#3b3446',shoes:'#8a5534',hat:'#3f6fd6',hat2:'#f2c14e',back:'#c23b3b',item:'#cfd8e3',item2:'#8a5534',glasses:'#2b2340'},
+  paint:{},outline:'dark',shading:true});
+const DEF_ITEM=()=>({sel:{type:'sword',effect:'none'},colors:{...ITEMS[0].d},paint:{},outline:'dark',shading:true});
+const PRESETS=[
+ {name:'Adventurer',sel:{},colors:{}},
+ {name:'Wizard',sel:{hat:'wizard',hair:'long',face:'beard',eyes:'dots',top:'robe',held:'staff',shoes:'sandals',back:'none',mouth:'neutral'},colors:{hat:'#7a4fd0',hat2:'#f2c14e',hair:'#e8e6e3',top:'#7a4fd0',top2:'#f2c14e',item:'#41c5d6',item2:'#8a5534',shoes:'#8a5534'}},
+ {name:'Knight',sel:{hat:'knight',top:'armor',held:'shield',back:'cape',shoes:'boots',bottom:'trousers'},colors:{hat:'#cfd8e3',hat2:'#c23b3b',top:'#cfd8e3',top2:'#5c3a22',bottom:'#5f5a6e',shoes:'#5f5a6e',back:'#c23b3b',item:'#3f6fd6',item2:'#f2c14e'}},
+ {name:'Cat rogue',sel:{ears:'cat',hair:'short',eyes:'anime',face:'whiskers',top:'hoodie',bottom:'wide',shoes:'sneakers',held:'none',back:'quiver'},colors:{hair:'#2a2230',eyes:'#e8b923',top:'#3b3446',top2:'#c23b3b',bottom:'#2b3a7a',shoes:'#c23b3b',back:'#8a5534'}},
+ {name:'Vampire',sel:{hair:'side',eyes:'angry',mouth:'fangs',face:'none',top:'jacket',back:'bat',bottom:'trousers',shoes:'boots',held:'none',head:'pointed'},colors:{skin:'#d8d4c8',hair:'#2a2230',eyes:'#c23b3b',top:'#1d1729',top2:'#c23b3b',back:'#3b3446',bottom:'#1d1729',shoes:'#1d1729'}},
+ {name:'Orc',sel:{hair:'mohawk',eyes:'angry',mouth:'fangs',face:'scar',top:'armor',bottom:'shorts',shoes:'sandals',held:'sword',head:'wide',hat:'none'},colors:{skin:'#9bd49a',hair:'#2a2230',eyes:'#c23b3b',top:'#8a5534',top2:'#5c3a22',bottom:'#5c3a22',shoes:'#5c3a22',item:'#b8c2cc'}}];
+
+/* ---------- custom parts: painted pixels saved on top of a preset ---------- */
+const PKEY='sprite-foundry:parts';
+let customs=(()=>{try{return JSON.parse(localStorage.getItem(PKEY))||{character:{},item:{}}}catch(e){return{character:{},item:{}}}})();
+const saveCustoms=()=>{try{localStorage.setItem(PKEY,JSON.stringify(customs))}catch(e){}optCache={}};
+const PH={back:'back',bottom:'legs',shoes:'feet',top:'torso',held:'held',ears:'ears',head:'head',eyes:'face',mouth:'face',face:'face',eyewear:'eyewear',hair:'hair',hat:'hat',type:'item'};
+const variants=c=>[c,dk(c),lt(c,.22),lt(c,.25),lt(c,.12),lt(c,.3),lt(c,.35),lt(c,.4),lt(c,.45),lt(c,.5),lt(c,.55),lt(c,.6),dk(c,.15),dk(c,.18),dk(c,.2),dk(c,.22),dk(c,.25),dk(c,.3),dk(c,.35),dk(c,.4),dk(c,.45),dk(c,.5),dk(c,.55),dk(c,.6),mix(c,'#140d24',.62),mix(c,'#ffffff',.35),mix(c,'#f06a7a',.45)];
+function recolor(saved,C){const m=new Map();for(const s in saved){if(!C[s])continue;const a=variants(saved[s]),b=variants(C[s]);a.forEach((v,i)=>{if(!m.has(v))m.set(v,b[i])})}return v=>m.get(v)||v}
+function stamp(g,C,c){const rc=recolor(c.saved,C);for(const k in c.px){const[x,y]=k.split(',').map(Number);const v=c.px[k];g.set(x,y,v==='T'?null:rc(v))}}
+function findBuiltin(mode,catId,id){const cat=DEFS[mode].cats.find(x=>x.id===catId);return cat.opts.find(o=>o.id===id)||cat.opts[0]}
+function makeCustom(mode,cat,c){const b=findBuiltin(mode,cat.id,c.base);const D=DEFS[mode];
+  const own=D.phases.filter(p=>b[p]);const sp=own.length?own[own.length-1]:PH[cat.id];
+  const o={id:c.id,name:c.name,custom:c,post:b.post};
+  for(const p of new Set([...own,sp]))o[p]=(g,C,R)=>{if(b[p])b[p](g,C,R);if(p===sp)stamp(g,C,c)};
+  return o}
+let optCache={};
+function optsOf(mode,cat){const k=mode+':'+cat.id;if(!optCache[k])optCache[k]=cat.opts.concat(((customs[mode]||{})[cat.id]||[]).map(c=>makeCustom(mode,cat,c)));return optCache[k]}
+
+/* ---------- render ---------- */
+function compose(mode,doc,override,noPaint,only){
+  const D=DEFS[mode],g=new Grid(D.size),sel={...doc.sel,...(override||{})},C=doc.colors,R={shading:doc.shading!==false},hid=doc.hidden||{};
+  const view=mode==='character'?(doc.view||'front'):'front',FACE=['eyes','mouth','face','eyewear'];
+  const cats=D.cats.filter(c=>only?c.id===only:!hid[c.id]).filter(c=>!(view==='back'&&FACE.includes(c.id)));
+  const chosen=cats.map(c=>{const os=optsOf(mode,c);return os.find(o=>o.id===sel[c.id])||os[0]});
+  const phases=view==='back'?D.phases.filter(p=>p!=='back').concat(['back']):D.phases;
+  const hairId=baseId(mode==='character'?mode:'character','hair',sel.hair);
+  for(const ph of phases){for(const o of chosen)if(o[ph])o[ph](g,C,R);
+    if(view==='back'&&ph==='head'&&!hid.hair&&(!only||only==='hair')&&!['bald','mohawk'].includes(hairId))shaded(g,new M().ell(16,10,6.8,6.6).filter((x,y)=>y<=13),C.hair,R)}
+  if(view!=='front'){const src=g.clone();for(let y=0;y<g.h;y++)for(let x=0;x<g.w;x++){let sx;if(view==='back')sx=g.w-1-x;else{const s=x-2;sx=s<11?s:s+5}g.set(x,y,src.get(sx,y))}}
+  if(doc.outline!=='none'){const add=[];
+    for(let y=0;y<g.h;y++)for(let x=0;x<g.w;x++){if(g.get(x,y))continue;const n=g.get(x-1,y)||g.get(x+1,y)||g.get(x,y-1)||g.get(x,y+1);
+      if(n)add.push([x,y,doc.outline==='dark'?OUT:mix(n,'#140d24',.62)])}
+    for(const[x,y,c]of add)g.set(x,y,c)}
+  for(const o of chosen){
+    if(o.post==='glow'){const glow=mix(C.a,'#ffffff',.35),add=[];for(let y=0;y<g.h;y++)for(let x=0;x<g.w;x++){if(g.get(x,y))continue;let n=0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]])if(g.get(x+dx,y+dy))n++;if(n)add.push([x,y])}for(const[x,y]of add)g.set(x,y,glow)}
+    if(o.post==='sparkle'){for(const[cx,cy]of[[2,2],[13,13],[13,2],[2,12]]){const m=new M().pts([[cx,cy],[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]]);let free=true;m.each((x,y)=>{if(g.get(x,y))free=false});if(free){fill(g,m,lt(C.a,.5));g.set(cx,cy,'#fffbe6')}}}}
+  if(!noPaint&&!hid.paint)applyPaint(g,doc.paint);
+  return g}
+function applyPaint(g,paint){for(const k in paint){const[x,y]=k.split(',').map(Number);g.set(x,y,paint[k]==='T'?null:paint[k])}}
+function blit(cv,g,s,crop){const ctx=cv.getContext('2d');const[cx,cy,cw,ch]=crop||[0,0,g.w,g.h];
+  if(!crop){cv.width=g.w*s;cv.height=g.h*s}ctx.clearRect(0,0,cv.width,cv.height);
+  const ox=crop?Math.floor((cv.width-cw*s)/2):0,oy=crop?Math.floor((cv.height-ch*s)/2):0;
+  for(let y=cy;y<cy+ch;y++)for(let x=cx;x<cx+cw;x++){const c=g.get(x,y);if(c){ctx.fillStyle=c;ctx.fillRect(ox+(x-cx)*s,oy+(y-cy)*s,s,s)}}}
+
+/* ---------- state ---------- */
+const KEY='sprite-foundry:v1',GKEY='sprite-foundry:gallery';
+const load=(k,f)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const S=Object.assign({mode:'character',docs:{character:DEF_CHAR(),item:DEF_ITEM()},tool:'pencil',color:'#e04a4a',mirror:false,grid:true,bg:'checker',scale:8,cat:{character:'head',item:'type'},
+  fmt:'png',jbg:'#ffffff',labels:false,animK:{character:'idle',item:'float'}},load(KEY,{}));
+S.sheet={src:'anim',cols:4,gap:1,scale:4,...(S.sheet||{})};
+for(const m of['character','item']){const d=m==='character'?DEF_CHAR():DEF_ITEM();S.docs[m]={...d,...S.docs[m],sel:{...d.sel,...(S.docs[m]||{}).sel},colors:{...d.colors,...(S.docs[m]||{}).colors}}}
+let gallery=load(GKEY,[]);
+const hist={character:{u:[],r:[]},item:{u:[],r:[]}};
+const doc=()=>S.docs[S.mode], def=()=>DEFS[S.mode];
+const snap=()=>JSON.stringify(doc());
+function checkpoint(){const h=hist[S.mode];h.u.push(snap());if(h.u.length>120)h.u.shift();h.r=[]}
+function change(fn){checkpoint();fn(doc());refresh(true)}
+function undo(){const h=hist[S.mode];if(!h.u.length)return;h.r.push(snap());S.docs[S.mode]=JSON.parse(h.u.pop());refresh(true)}
+function redo(){const h=hist[S.mode];if(!h.r.length)return;h.u.push(snap());S.docs[S.mode]=JSON.parse(h.r.pop());refresh(true)}
+
+/* ---------- DOM ---------- */
+const $=s=>document.querySelector(s);
+const el=(t,a={},kids=[])=>{const e=document.createElement(t);for(const k in a){if(k==='on')for(const ev in a.on)e.addEventListener(ev,a.on[ev]);else if(k in e&&k!=='style')e[k]=a[k];else e.setAttribute(k,a[k])}for(const c of[].concat(kids))if(c!=null)e.append(c);return e};
+const cv=$('#cv'),ctx=cv.getContext('2d');let cell=16,hover=null,base=null,comp=null;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1600)}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function sizeCanvas(){const n=def().size,b=$('#board');const w=b.clientWidth-24;const max=Math.min(w,620,Math.max(280,innerHeight-210));
+  cell=Math.max(4,Math.floor(max/n));const px=cell*n,d=devicePixelRatio||1;cv.style.width=px+'px';cv.style.height=px+'px';cv.width=px*d;cv.height=px*d;ctx.setTransform(d,0,0,d,0,0);drawMain()}
+function drawMain(){if(!comp)return;const n=def().size,px=cell*n,ca=css('--check-a'),cb=css('--check-b');
+  ctx.fillStyle=ca;ctx.fillRect(0,0,px,px);ctx.fillStyle=cb;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x+y)%2)ctx.fillRect(x*cell,y*cell,cell,cell)}
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){const c=comp.get(x,y);if(c){ctx.fillStyle=c;ctx.fillRect(x*cell,y*cell,cell,cell)}}
+  if(S.grid&&cell>=8){ctx.strokeStyle=css('--gridline');ctx.lineWidth=1;ctx.beginPath();for(let i=1;i<n;i++){ctx.moveTo(i*cell+.5,0);ctx.lineTo(i*cell+.5,px);ctx.moveTo(0,i*cell+.5);ctx.lineTo(px,i*cell+.5)}ctx.stroke()}
+  if(S.mirror){ctx.save();ctx.strokeStyle=css('--accent');ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(px/2,0);ctx.lineTo(px/2,px);ctx.stroke();ctx.restore()}
+  if(hover){const pts=[hover];if(S.mirror)pts.push([n-1-hover[0],hover[1]]);ctx.strokeStyle=css('--sel');ctx.lineWidth=2;for(const[x,y]of pts)ctx.strokeRect(x*cell+1,y*cell+1,cell-2,cell-2)}}
+let frame=0;
+const ANIMS={character:[['idle','Idle',480],['walk','Walk',170]],item:[['float','Float',420],['shine','Shine',110]]};
+function animFrames(g,kind){const W=g.w;const sh=fn=>{const o=new Grid(W);for(let y=0;y<W;y++)for(let x=0;x<W;x++){const s=fn(x,y);if(s)o.set(x,y,g.get(s[0],s[1]))}return o};
+  if(kind==='idle')return[g,sh((x,y)=>y>=25?[x,y]:[x,y-1])];
+  if(kind==='walk'){const lift=left=>sh((x,y)=>y>=25&&(left?x<W/2:x>=W/2)?[x,y+1]:[x,y]);return[g,lift(true),g,lift(false)]}
+  if(kind==='float')return[g,sh((x,y)=>[x,y+1])];
+  if(kind==='shine'){const fr=[g];for(let d=0;d<=2*W-2;d+=5){const o=g.clone();for(let y=0;y<W;y++)for(let x=0;x<W;x++){const c=g.get(x,y);if(c&&c!==OUT&&x+y>=d&&x+y<=d+1)o.set(x,y,lt(c,.6))}fr.push(o)}return fr}
+  return[g]}
+function drawPreviews(){if(!comp)return;const k0=S.animK[S.mode];const fr=k0==='still'?[comp]:animFrames(comp,k0);const g=fr[frame%fr.length];
+  const k=S.mode==='item'?2:1;blit($('#p1'),g,1*k);blit($('#p2'),g,2*k);blit($('#p4'),g,4*k);
+  $('#p1').nextElementSibling.textContent=(1*k)+'×';$('#p2').nextElementSibling.textContent=(2*k)+'×';$('#p4').nextElementSibling.textContent=(4*k)+'×'}
+(function tick(){const a=ANIMS[S.mode].find(a=>a[0]===S.animK[S.mode]);if(a){frame++;drawPreviews()}setTimeout(tick,a?a[2]:400)})();
+
+function thumb(over,size=56,focus,cols){const d0=doc(),dd=cols?{...d0,colors:{...d0.colors,...cols}}:d0;const g=compose(S.mode,dd,over);const c=el('canvas',{width:size,height:size});const[ , , w,h]=focus||[0,0,g.w,g.h];blit(c,g,Math.max(1,Math.floor(size/Math.max(w,h))),focus||[0,0,g.w,g.h]);return c}
+
+function buildChips(){const box=$('#chips');box.innerHTML='';const cur=S.cat[S.mode];
+  for(const c of def().cats)if(!c.hidden)box.append(el('button',{className:'chip',role:'tab','aria-pressed':String(c.id===cur),textContent:c.name,on:{click(){S.cat[S.mode]=c.id;refresh(true)}}}))}
+function buildOpts(){const box=$('#opts');box.innerHTML='';const cat=def().cats.find(c=>c.id===S.cat[S.mode]);const d=doc();
+  for(const o of optsOf(S.mode,cat)){const over={[cat.id]:o.id};
+    const b=el('button',{className:'opt','aria-pressed':String(d.sel[cat.id]===o.id),title:o.name,on:{click(){if(d.sel[cat.id]===o.id)return;change(dd=>{dd.sel[cat.id]=o.id;if(o.d)Object.assign(dd.colors,o.d)})}}},[thumb(over,56,cat.focus,o.d),el('span',{textContent:o.name})]);
+    const w=el('div',{className:'optw'},[b]);
+    if(o.custom)w.append(el('button',{className:'gdel',title:'Delete '+o.name,'aria-label':'Delete '+o.name,textContent:'×',on:{click(){
+      const list=customs[S.mode][cat.id];customs[S.mode][cat.id]=list.filter(c=>c.id!==o.id);saveCustoms();
+      for(const m of['character','item'])if(S.docs[m].sel[cat.id]===o.id)S.docs[m].sel[cat.id]=o.custom.base;refresh(true);toast('Deleted '+o.name)}}}));
+    box.append(w)}
+  const ds=$('#design');ds.innerHTML='';
+  if(cat.id!=='effect'){const n=Object.keys(d.paint).length,cur=optsOf(S.mode,cat).find(o=>o.id===d.sel[cat.id]);
+    ds.append(el('p',{className:'label',textContent:'Design your own'}),
+      el('p',{className:'hint',textContent:`Paint over the ${cat.name.toLowerCase()} on the canvas, then save it here as a new option. It starts from “${cur?cur.name:''}” and still follows the color swatches below.`}),
+      el('button',{className:'btn primary',disabled:!n,textContent:n?`Save ${n} painted pixels as a new ${cat.name.toLowerCase()}`:'Paint on the canvas to start',on:{click(){saveAsPart(cat)}}}))}
+  else ds.hidden=true;ds.hidden=cat.id==='effect';
+  const cbox=$('#colors');cbox.innerHTML='';
+  for(const s of cat.slots||[]){const[lab,list]=SLOT[s];const val=d.colors[s];
+    const row=el('div',{className:'row'});
+    for(const c of list)row.append(el('button',{className:'sw','aria-pressed':String(c.toLowerCase()===val.toLowerCase()),title:c,'aria-label':lab+' '+c,style:'background:'+c,on:{click(){change(dd=>dd.colors[s]=c)}}}));
+    const inp=el('input',{type:'color',id:'c-'+S.mode+'-'+s,value:val,'aria-label':'Custom '+lab.toLowerCase()});
+    let started=false;inp.addEventListener('input',()=>{if(!started){checkpoint();started=true}doc().colors[s]=inp.value;refresh(false)});inp.addEventListener('change',()=>{started=false;refresh(true)});
+    row.append(el('label',{className:'custom',title:'Custom color'},['+',inp]),el('span',{className:'hex',textContent:val}));
+    cbox.append(el('div',{className:'slot'},[el('p',{className:'label',textContent:lab}),row]))}}
+function saveAsPart(cat){const d=doc(),cur=optsOf(S.mode,cat).find(o=>o.id===d.sel[cat.id])||cat.opts[0];
+  let px={},baseId=cur.id;
+  if(cur.custom){baseId=cur.custom.base;const rc=recolor(cur.custom.saved,d.colors);for(const k in cur.custom.px){const v=cur.custom.px[k];px[k]=v==='T'?'T':rc(v)}}
+  Object.assign(px,d.paint);
+  const list=((customs[S.mode]=customs[S.mode]||{})[cat.id]=customs[S.mode][cat.id]||[]);
+  const name='My '+cat.name.toLowerCase()+' '+(list.length+1);
+  const c={id:'u'+Date.now().toString(36),name,base:baseId,px,saved:{...d.colors}};list.push(c);saveCustoms();
+  change(dd=>{dd.sel[cat.id]=c.id;dd.paint={}});toast(`Saved “${name}”`)}
+function buildPresets(){const box=$('#presets');box.innerHTML='';const on=S.mode==='character';box.parentElement.hidden=!on;if(!on)return;
+  for(const p of PRESETS){const tmp=DEF_CHAR();Object.assign(tmp.sel,p.sel);Object.assign(tmp.colors,p.colors);const g=compose('character',tmp);const c=el('canvas',{width:32,height:32});blit(c,g,1);
+    box.append(el('button',{className:'preset',on:{click(){change(dd=>{const f=DEF_CHAR();dd.sel={...f.sel,...p.sel};dd.colors={...f.colors,...p.colors};dd.paint={}});toast(p.name+' loaded')}}},[c,p.name]))}}
+function buildPalette(){const box=$('#pal');box.innerHTML='';for(const c of PAL)box.append(el('button',{className:'sw','aria-pressed':String(c===S.color),title:c,'aria-label':'Paint '+c,style:'background:'+c,on:{click(){setColor(c)}}}));
+  const u=$('#used');u.innerHTML='';const set=new Map();if(comp)for(const c of comp.p)if(c)set.set(c,(set.get(c)||0)+1);
+  [...set.entries()].sort((a,b)=>b[1]-a[1]).slice(0,24).forEach(([c])=>u.append(el('button',{className:'sw','aria-pressed':String(c===S.color),title:c,'aria-label':'Paint '+c,style:'background:'+c,on:{click(){setColor(c)}}})));
+  $('#cur').style.background=S.color;$('#pcustom').value=S.color}
+function setColor(c){S.color=c;if(S.tool==='eraser'||S.tool==='picker')S.tool='pencil';syncTools();buildPalette();persist()}
+function syncTools(){document.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===S.tool)));
+  $('#mirror').setAttribute('aria-pressed',String(S.mirror));$('#gridt').setAttribute('aria-pressed',String(S.grid));$('#shading').setAttribute('aria-pressed',String(doc().shading!==false));
+  $('#view').hidden=S.mode!=='character';$('#view').value=doc().view||'front';if(S.mode==='item'&&S.sheet.src==='views')S.sheet.src='anim';
+  $('#outline').value=doc().outline;const an=$('#anim');an.innerHTML='';an.append(el('option',{value:'still',textContent:'Still'}));for(const[a,b]of ANIMS[S.mode])an.append(el('option',{value:a,textContent:b}));an.value=S.animK[S.mode];
+  $('#m-character').setAttribute('aria-pressed',String(S.mode==='character'));$('#m-item').setAttribute('aria-pressed',String(S.mode==='item'));
+  $('#undo').disabled=!hist[S.mode].u.length;$('#redo').disabled=!hist[S.mode].r.length;$('#cur').style.background=S.color}
+/* ---------- labels ---------- */
+const NAMED=[['#e04a4a','red','Red'],['#c23b3b','crimson','Crimson'],['#e8445a','ruby','Ruby'],['#e8873a','orange','Amber'],['#f2c14e','gold','Golden'],['#5bb85b','green','Emerald'],
+ ['#3f7d3f','forest green','Jade'],['#2e8b74','teal','Teal'],['#41c5d6','aqua','Aqua'],['#7ad7f0','ice blue','Frost'],['#3f6fd6','blue','Sapphire'],['#2b3a7a','navy','Midnight'],
+ ['#7a4fd0','violet','Amethyst'],['#c25595','magenta','Magenta'],['#e88fb6','pink','Rose'],['#f4efe6','white','Ivory'],['#cfd8e3','silver','Steel'],['#b8c2cc','grey','Iron'],
+ ['#8a8f9a','grey','Stone'],['#3b3446','charcoal','Shadow'],['#1d1729','black','Obsidian'],['#8a5534','brown','Wooden'],['#5c3a22','dark brown','Oak'],['#b87333','copper','Copper'],
+ ['#efe2c0','parchment','Parchment'],['#dbe9f2','pale','Glass'],['#9bd49a','mint','Mint'],['#d9a441','blond','Golden'],['#c4471f','auburn','Copper'],['#f3dc8c','platinum','Pale']];
+function nameOf(hex,mat){let best=NAMED[0],bd=1e9;const a=h2r(hex);for(const n of NAMED){const b=h2r(n[0]);const d=(a[0]-b[0])**2*.3+(a[1]-b[1])**2*.59+(a[2]-b[2])**2*.11;if(d<bd){bd=d;best=n}}return mat?best[2]:best[1]}
+function baseId(mode,catId,id){const cat=DEFS[mode].cats.find(c=>c.id===catId);const o=optsOf(mode,cat).find(o=>o.id===id)||cat.opts[0];return o.custom?findBuiltin(mode,catId,o.custom.base).id:o.id}
+const bname=(mode,catId,id)=>findBuiltin(mode,catId,id).name.toLowerCase();
+function labelFor(mode,d){const s=c=>baseId(mode,c,d.sel[c]),C=d.colors;
+  if(mode==='item'){const t=s('type'),it=ITEMS.find(i=>i.id===t)||ITEMS[0];const key=t==='gem'?C.p:['potion','jar','staff'].includes(t)?C.a:C.p;
+    const fx={glow:'Glowing ',sparkle:'Sparkling '}[s('effect')]||'';
+    return{name:`${fx}${nameOf(key,1)} ${it.name}`,detail:`${nameOf(C.p)} with ${nameOf(C.s)} trim`+(d.sel.type!==t?' · custom shape':'')}}
+  const ears=s('ears'),hat=s('hat'),top=s('top'),held=s('held'),back=s('back'),mouth=s('mouth'),hair=s('hair');
+  let si=0,bd=1e9;const a=h2r(C.skin);SKIN.forEach((k,i)=>{const b=h2r(k);const dd=(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;if(dd<bd){bd=dd;si=i}});
+  const skinRace=si>=6?['Orc','Frost','Fae','Undead'][si-6]:'',earRace={cat:'Cat',bunny:'Bunny',elf:'Elf'}[ears]||'';
+  const role=hat==='wizard'?'Wizard':hat==='knight'||(top==='armor'&&held==='shield')?'Knight':hat==='crown'?'Royal':back==='bat'||(mouth==='fangs'&&skinRace!=='Orc')?'Vampire':
+    top==='armor'?'Warrior':held==='staff'||held==='wand'?'Mage':back==='quiver'?'Archer':held==='sword'?'Swordfighter':held==='shield'?'Guard':hat==='hood'?'Rogue':
+    held==='torch'?'Explorer':top==='robe'?'Monk':back==='wings'||hat==='halo'?'Angel':'Villager';
+  const parts=[`${nameOf(C.top)} ${bname(mode,'top',top)}`,hair==='bald'?'bald':`${nameOf(C.hair)} ${bname(mode,'hair',hair)} hair`];
+  if(held!=='none')parts.push(bname(mode,'held',held));if(back!=='none')parts.push(bname(mode,'back',back));
+  return{name:[skinRace,earRace,role].filter(Boolean).join(' '),detail:parts.join(' · ')}}
+function updateLabel(){const l=labelFor(S.mode,doc());$('#lbl-name').textContent=l.name;$('#lbl-detail').textContent=l.detail;$('#sname').placeholder=l.name;return l}
+
+/* ---------- image / sheet building ---------- */
+const mime=()=>S.fmt==='jpeg'?'image/jpeg':'image/png', ext=()=>S.fmt==='jpeg'?'jpg':'png';
+const slug=s=>(s||'sprite').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'sprite';
+const toBlob=(c,type)=>new Promise(r=>c.toBlob(r,type||mime(),.95));
+function drawLabel(x,text,ox,oy,w,h){let fg='#f4efe6';
+  if(S.fmt==='jpeg'){const[r,g,b]=h2r(S.jbg);fg=(r*.3+g*.59+b*.11)>140?'#1d1729':'#f4efe6'}else{x.fillStyle='#1d1729';x.fillRect(ox,oy,w,h)}
+  let fs=Math.max(6,Math.floor(h*.6));x.textAlign='center';x.textBaseline='middle';x.fillStyle=fg;
+  for(;;){x.font=`${fs}px Silkscreen, ui-monospace, monospace`;if(x.measureText(text).width<=w-4||fs<=6)break;fs--}
+  let t=text;if(x.measureText(t).width>w-4){while(t.length>1&&x.measureText(t+'…').width>w-4)t=t.slice(0,-1);t+='…'}
+  x.fillText(t,ox+w/2,oy+h/2+1)}
+function sheetCanvas(rows,gap,scale,labels){const n=rows[0][0].g.w,cols=Math.max(...rows.map(r=>r.length)),fw=n*scale;
+  const L=labels?Math.min(28,Math.max(10,Math.round(fw*.16))):0,gp=gap*scale,cw=fw+gp,ch=fw+L+gp;
+  const c=document.createElement('canvas');c.width=cols*cw+gp;c.height=rows.length*ch+gp;const x=c.getContext('2d');
+  if(S.fmt==='jpeg'){x.fillStyle=S.jbg;x.fillRect(0,0,c.width,c.height)}
+  const frames=[];rows.forEach((r,ri)=>r.forEach((it,ci)=>{const ox=gp+ci*cw,oy=gp+ri*ch;frames.push({name:it.label,x:ox,y:oy,w:fw,h:fw,row:ri,col:ci});
+    for(let yy=0;yy<n;yy++)for(let xx=0;xx<n;xx++){const col=it.g.get(xx,yy);if(col){x.fillStyle=col;x.fillRect(ox+xx*scale,oy+yy*scale,scale,scale)}}
+    if(L)drawLabel(x,it.label,ox,oy+fw,fw,L)}));
+  return{c,frames}}
+function sheetSource(){const src=S.sheet.src,d=doc();
+  if(src==='anim'){const kinds=ANIMS[S.mode];return{rows:kinds.map(k=>animFrames(comp,k[0]).map((g,i)=>({g,label:`${k[1]} ${i+1}`}))),names:kinds.map(k=>k[0]),anim:true}}
+  let list=[];
+  if(src==='views')return{rows:[['front','Front'],['side','Side'],['back','Back']].map(([v,n])=>animFrames(compose(S.mode,{...d,view:v}),'walk').map((g,i)=>({g,label:`${n} ${i+1}`}))),names:['front','side','back'],anim:true};
+  if(src==='opts'){const cat=def().cats.find(c=>c.id===S.cat[S.mode]);list=optsOf(S.mode,cat).map(o=>{const dd=o.d?{...d,colors:{...d.colors,...o.d}}:d;
+    return{g:compose(S.mode,dd,{[cat.id]:o.id}),label:S.mode==='item'&&cat.id==='type'?labelFor('item',{...dd,sel:{...dd.sel,type:o.id}}).name:o.name}})}
+  if(src==='saved')list=gallery.filter(it=>it.mode===S.mode).map(it=>({g:compose(it.mode,it.doc),label:it.name}));
+  const cols=Math.max(1,Math.min(+S.sheet.cols||4,list.length||1)),rows=[];for(let i=0;i<list.length;i+=cols)rows.push(list.slice(i,i+cols));
+  return{rows,names:[],anim:false}}
+function updateExport(){if(!comp)return;const l=updateLabel();const c=sheetCanvas([[{g:comp,label:l.name}]],0,+S.scale,S.labels).c;$('#out').src=c.toDataURL(mime(),.95);
+  $('#outhint').textContent=`${c.width} × ${c.height} px ${S.fmt==='jpeg'?'JPEG':'PNG'}. `+(canSave()?'Press Save image, or right-click the image.':'Right-click or long-press the image to save it.');
+  updateExport.c=c;$('#jbg-wrap').hidden=S.fmt!=='jpeg';updateSheet()}
+function updateSheet(){if(!comp)return;const sel=$('#ssrc'),cat=def().cats.find(c=>c.id===S.cat[S.mode]),noun=S.mode==='item'?'items':'characters';
+  sel.innerHTML='';for(const[v,t]of[...(S.mode==='character'?[['views','Front, side and back (walk cycle)']]:[]),['anim',`Animations: ${ANIMS[S.mode].map(a=>a[1].toLowerCase()).join(' + ')}`],['opts',`Every ${cat.name.toLowerCase()} option`],['saved',`Saved ${noun}`]])sel.append(el('option',{value:v,textContent:t}));
+  sel.value=S.sheet.src;$('#scols-wrap').hidden=S.sheet.src==='anim';$('#scols').value=S.sheet.cols;$('#sgap').value=String(S.sheet.gap);$('#sscale').value=String(S.sheet.scale);
+  const s=sheetSource(),img=$('#sheet');
+  if(!s.rows.length){img.hidden=true;$('#sheethint').textContent=`No saved ${noun} yet. Save a few below and they appear here.`;updateSheet.cur=null;$('#savesheet').disabled=$('#savejson').disabled=true;return}
+  const r=sheetCanvas(s.rows,+S.sheet.gap,+S.sheet.scale,S.labels);img.hidden=false;img.src=r.c.toDataURL(mime(),.95);
+  $('#sheethint').textContent=`${r.frames.length} frames in ${s.rows.length} row${s.rows.length>1?'s':''} · ${r.c.width} × ${r.c.height} px`;
+  updateSheet.cur={...r,s};$('#savesheet').disabled=$('#savejson').disabled=false}
+const sheetBase=()=>slug(labelFor(S.mode,doc()).name)+'-'+S.sheet.src+'-sheet';
+function sheetJSON(){const{c,frames,s}=updateSheet.cur;const out={image:sheetBase()+'.'+ext(),label:labelFor(S.mode,doc()).name,description:labelFor(S.mode,doc()).detail,
+  format:S.fmt,width:c.width,height:c.height,frameWidth:frames[0].w,frameHeight:frames[0].h,scale:+S.sheet.scale,frames:frames.map(f=>({name:f.name,x:f.x,y:f.y,w:f.w,h:f.h}))};
+  if(s.anim){out.animations={};s.names.forEach((nm,ri)=>out.animations[nm]=frames.map((f,i)=>f.row===ri?i:-1).filter(i=>i>=0))}return out}
+
+/* ---------- saving files ---------- */
+let DL=null;const framed=(()=>{try{return window.top!==window}catch(e){return true}})();
+const canSave=()=>!!DL||!framed;
+function syncSave(){document.querySelectorAll('.needs-save').forEach(b=>b.hidden=!canSave());if(comp)updateExport()}
+try{if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{DL=d;syncSave()},()=>{})}catch(e){}
+async function saveFile(data,filename){
+  if(DL){try{await DL.save({filename,data});toast('Saved '+filename)}catch(e){const c=e&&e.code;toast(c==='declined'?'Save cancelled':c==='rate_limited'?'Finish the open save prompt first':'Saving is not available here. Right-click the image instead.')}return}
+  if(!framed){const a=document.createElement('a');a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return}
+  toast('Saving is not available here. Right-click the image instead.')}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function makeZip(files){const enc=new TextEncoder(),parts=[],central=[];let off=0;
+  for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),sz=f.data.length;
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(h.buffer),nm,f.data);
+    const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,sz,true);c.setUint32(24,sz,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+sz}
+  const cs=central.reduce((a,b)=>a+b.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:'application/zip'})}
+const spriteCanvas=(g,label)=>sheetCanvas([[{g,label}]],0,+S.scale,S.labels).c;
+async function saveSprite(it){saveFile(await toBlob(spriteCanvas(compose(it.mode,it.doc),it.name)),slug(it.name)+'.'+ext())}
+async function saveAll(){if(!gallery.length){toast('Save a sprite first');return}const used=new Set(),files=[],meta=[];
+  for(const it of gallery){const b=await toBlob(spriteCanvas(compose(it.mode,it.doc),it.name));let base=slug(it.name),k=base,i=2;while(used.has(k))k=base+'-'+i++;used.add(k);
+    const name=k+'.'+ext();files.push({name,data:new Uint8Array(await b.arrayBuffer())});const l=labelFor(it.mode,it.doc);meta.push({file:name,label:it.name,autoLabel:l.name,description:l.detail,type:it.mode})}
+  files.push({name:'labels.json',data:new TextEncoder().encode(JSON.stringify(meta,null,2))});
+  saveFile(makeZip(files),'sprites-'+ext()+'.zip')}
+function buildGallery(){const box=$('#gallery');box.innerHTML='';
+  if(!gallery.length){box.append(el('div',{className:'empty',style:'grid-column:1/-1',textContent:'Saved sprites show up here. Name one above and press Save.'}));return}
+  gallery.forEach((it,i)=>{box.append(el('div',{className:'gitem'},[
+    el('button',{className:'gload',style:'border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;gap:3px;max-width:100%',title:'Open '+it.name,on:{click(){S.mode=it.mode;checkpoint();S.docs[it.mode]=JSON.parse(JSON.stringify(it.doc));sizeCanvas();refresh(true);toast('Opened '+it.name)}}},[el('img',{src:it.thumb,alt:''}),el('span',{textContent:it.name})]),
+    el('button',{className:'gsave needs-save',title:'Save '+it.name+' as an image','aria-label':'Save '+it.name+' as an image',textContent:'↓',hidden:!canSave(),on:{click(){saveSprite(it)}}}),
+    el('button',{className:'gdel',title:'Delete '+it.name,'aria-label':'Delete '+it.name,textContent:'×',on:{click(){gallery.splice(i,1);store(GKEY,gallery);buildGallery();toast('Deleted '+it.name)}}})]))})}
+const persist=()=>store(KEY,S);
+
+let raf=0,pendingFull=false;
+function refresh(full){pendingFull=pendingFull||full;if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const f=pendingFull;pendingFull=false;
+  base=compose(S.mode,doc(),null,true);comp=base.clone();if(!(doc().hidden||{}).paint)applyPaint(comp,doc().paint);drawMain();drawPreviews();
+  $('#edits').textContent=Object.keys(doc().paint).length+' painted pixels';
+  if(f){buildChips();buildOpts();buildPresets();buildPalette();syncTools();updateExport();buildLayers();persist()}})}
+function layerList(){return def().cats.map(c=>({id:c.id,name:c.hidden?'Body':c.name})).concat([{id:'paint',name:'Painted pixels'}])}
+function layerGrid(id){const d=doc();if(id==='paint'){const g=new Grid(def().size);applyPaint(g,d.paint);return g}return compose(S.mode,d,null,true,id)}
+function layerCanvas(id){const c=document.createElement('canvas');blit(c,layerGrid(id),+S.scale);return c}
+function buildLayers(){const box=$('#layers');box.innerHTML='';const d=doc(),hid=d.hidden||{},base=slug(labelFor(S.mode,d).name);
+  for(const l of layerList().reverse()){
+    const cb=el('input',{type:'checkbox',id:'ly-'+S.mode+'-'+l.id,checked:!hid[l.id],on:{change(e){change(dd=>{dd.hidden={...(dd.hidden||{})};if(e.target.checked)delete dd.hidden[l.id];else dd.hidden[l.id]=true})}}});
+    box.append(el('div',{className:'lrow'},[el('label',{className:'chk'},[cb,l.name]),
+      el('button',{className:'gsave2 needs-save',hidden:!canSave(),textContent:'↓',title:`Save the ${l.name} layer as PNG`,'aria-label':`Save the ${l.name} layer as PNG`,
+        on:{async click(){saveFile(await toBlob(layerCanvas(l.id),'image/png'),`${base}-${slug(l.name)}.png`)}}})]))}}
+async function saveLayers(){const d=doc(),base=slug(labelFor(S.mode,d).name),files=[],meta=[];
+  for(const[i,l]of layerList().entries()){const g=layerGrid(l.id);if(!g.p.some(Boolean))continue;
+    const name=`${String(i+1).padStart(2,'0')}-${slug(l.name)}.png`;const b=await toBlob(layerCanvas(l.id),'image/png');
+    files.push({name,data:new Uint8Array(await b.arrayBuffer())});meta.push({order:meta.length,layer:l.name,file:name,visible:!(d.hidden||{})[l.id]})}
+  files.push({name:'layers.json',data:new TextEncoder().encode(JSON.stringify({sprite:labelFor(S.mode,d).name,description:labelFor(S.mode,d).detail,size:def().size*S.scale,note:'Stack in order: first file is the bottom layer.',layers:meta},null,2))});
+  saveFile(makeZip(files),base+'-layers.zip')}
+
+/* ---------- painting ---------- */
+let stroke=null;
+function cellAt(e){const r=cv.getBoundingClientRect(),n=def().size;const x=Math.floor((e.clientX-r.left)/r.width*n),y=Math.floor((e.clientY-r.top)/r.height*n);return x>=0&&y>=0&&x<n&&y<n?[x,y]:null}
+function plot(x,y,erase){const n=def().size,P=doc().paint;const targets=[[x,y]];if(S.mirror)targets.push([n-1-x,y]);
+  for(const[a,b]of targets){const k=a+','+b;if(erase){if(base.get(a,b))P[k]='T';else delete P[k]}else{if(base.get(a,b)===S.color)delete P[k];else P[k]=S.color}}}
+function line(a,b,erase){let[x0,y0]=a;const[x1,y1]=b;const m=new M().line(x0,y0,x1,y1);m.each((x,y)=>plot(x,y,erase))}
+function flood(x,y){const n=def().size,t=comp.get(x,y);if(t===S.color)return;const P=doc().paint,seen=new Set(),st=[[x,y]];
+  while(st.length){const[a,b]=st.pop();if(a<0||b<0||a>=n||b>=n)continue;const k=a+','+b;if(seen.has(k)||comp.get(a,b)!==t)continue;seen.add(k);P[k]=S.color;st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}}
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{const c=cellAt(e);if(!c)return;e.preventDefault();
+  let tool=S.tool;if(e.button===2)tool='eraser';if(e.altKey)tool='picker';
+  if(tool==='picker'){const col=comp.get(c[0],c[1]);if(col)setColor(col);else toast('That pixel is empty');return}
+  checkpoint();
+  if(tool==='fill'){flood(c[0],c[1]);if(S.mirror)flood(def().size-1-c[0],c[1]);refresh(true);return}
+  cv.setPointerCapture(e.pointerId);stroke={last:c,erase:tool==='eraser'};plot(c[0],c[1],stroke.erase);refresh(false)});
+cv.addEventListener('pointermove',e=>{const c=cellAt(e);hover=c;$('#pos').textContent=c?`x ${c[0]}, y ${c[1]}`+(comp&&comp.get(c[0],c[1])?'  '+comp.get(c[0],c[1]):''):'Hover the canvas';
+  if(stroke&&c){line(stroke.last,c,stroke.erase);stroke.last=c;refresh(false)}else drawMain()});
+const endStroke=()=>{if(stroke){stroke=null;refresh(true)}};
+cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
+cv.addEventListener('pointerleave',()=>{hover=null;drawMain()});
+
+/* ---------- controls ---------- */
+document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>{S.tool=b.dataset.tool;syncTools();persist()}));
+$('#mirror').onclick=()=>{S.mirror=!S.mirror;syncTools();drawMain();persist()};
+$('#gridt').onclick=()=>{S.grid=!S.grid;syncTools();drawMain();persist()};
+$('#shading').onclick=()=>change(d=>d.shading=d.shading===false);
+$('#outline').onchange=e=>change(d=>d.outline=e.target.value);
+$('#anim').onchange=e=>{S.animK[S.mode]=e.target.value;frame=0;drawPreviews();persist()};
+$('#fmt').value=S.fmt;$('#fmt').onchange=e=>{S.fmt=e.target.value;updateExport();persist()};
+$('#jbg').value=S.jbg;$('#jbg').oninput=e=>{S.jbg=e.target.value;updateExport();persist()};
+$('#lblon').checked=!!S.labels;$('#lblon').onchange=e=>{S.labels=e.target.checked;updateExport();persist()};
+$('#ssrc').onchange=e=>{S.sheet.src=e.target.value;updateSheet();persist()};
+$('#scols').onchange=e=>{S.sheet.cols=Math.max(1,Math.min(32,+e.target.value||4));updateSheet();persist()};
+$('#sgap').onchange=e=>{S.sheet.gap=+e.target.value;updateSheet();persist()};
+$('#sscale').onchange=e=>{S.sheet.scale=+e.target.value;updateSheet();persist()};
+$('#saveimg').onclick=async()=>saveFile(await toBlob(updateExport.c),slug($('#sname').value.trim()||labelFor(S.mode,doc()).name)+'.'+ext());
+$('#savesheet').onclick=async()=>{if(updateSheet.cur)saveFile(await toBlob(updateSheet.cur.c),sheetBase()+'.'+ext())};
+$('#savejson').onclick=()=>{if(updateSheet.cur)saveFile(JSON.stringify(sheetJSON(),null,2),sheetBase()+'.json')};
+$('#saveall').onclick=saveAll;$('#savelayers').onclick=saveLayers;
+$('#view').onchange=e=>change(d=>d.view=e.target.value);
+$('#bg').value=S.bg;$('#prev').className='prev bg-'+S.bg;
+$('#bg').onchange=e=>{S.bg=e.target.value;$('#prev').className='prev bg-'+S.bg;persist()};
+$('#scale').value=String(S.scale);$('#scale').onchange=e=>{S.scale=+e.target.value;updateExport();persist()};
+$('#pcustom').addEventListener('input',e=>setColor(e.target.value));
+$('#clear').onclick=()=>{if(!Object.keys(doc().paint).length){toast('No painted pixels to clear');return}change(d=>d.paint={});toast('Painted pixels cleared. Undo brings them back.')};
+$('#undo').onclick=undo;$('#redo').onclick=redo;
+$('#reset').onclick=()=>{change(d=>Object.assign(d,S.mode==='character'?DEF_CHAR():DEF_ITEM()));toast('Reset. Undo brings it back.')};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+$('#random').onclick=()=>change(d=>{for(const c of def().cats)if(!c.hidden)d.sel[c.id]=pick(c.opts).id;
+  if(S.mode==='character'){for(const s in d.colors)d.colors[s]=pick(SLOT[s][1]);if(Math.random()<.5)d.sel.hat='none';if(Math.random()<.5)d.sel.eyewear='none';if(Math.random()<.4)d.sel.back='none'}
+  else{const t=ITEMS.find(t=>t.id===d.sel.type);Object.assign(d.colors,t.d);if(Math.random()<.6)d.colors.p=pick(SLOT.p[1]);if(Math.random()<.6)d.sel.effect='none'}d.paint={}});
+for(const m of['character','item'])$('#m-'+m).onclick=()=>{if(S.mode===m)return;S.mode=m;hover=null;sizeCanvas();refresh(true)};
+$('#copy').onclick=async()=>{try{const c=updateExport.c;const blob=await new Promise(r=>c.toBlob(r,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);toast('Image copied')}catch(e){toast('Copy is blocked here. Right-click the image to save it.')}};
+$('#saveform').addEventListener('submit',e=>{e.preventDefault();const name=$('#sname').value.trim()||labelFor(S.mode,doc()).name;
+  const c=document.createElement('canvas');blit(c,comp,S.mode==='item'?3:2);gallery.unshift({name,mode:S.mode,doc:JSON.parse(snap()),thumb:c.toDataURL()});gallery=gallery.slice(0,40);store(GKEY,gallery);$('#sname').value='';buildGallery();toast('Saved '+name)});
+document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+  if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return}
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const map={b:'pencil',p:'pencil',e:'eraser',g:'fill',f:'fill',i:'picker'};if(map[k]){S.tool=map[k];syncTools();persist()}
+  if(k==='m'){S.mirror=!S.mirror;syncTools();drawMain();persist()}});
+new ResizeObserver(()=>sizeCanvas()).observe($('#board'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>drawMain());
+new MutationObserver(()=>drawMain()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* logo: a tiny gem */
+(()=>{const d=DEF_ITEM();d.sel.type='gem';Object.assign(d.colors,ITEMS.find(t=>t.id==='gem').d);d.colors.p='#3f6fd6';blit($('#logo'),compose('item',d),1)})();
+buildGallery();syncSave();sizeCanvas();refresh(true);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(comp)updateExport()});
+})();
+</script>
+
+</body>
+</html>
