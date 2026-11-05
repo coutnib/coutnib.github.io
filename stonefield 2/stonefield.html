@@ -149,6 +149,17 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
 .tag.hostile { color: var(--bad); border-color: var(--bad); }
 .tag.npc { color: var(--moss); border-color: var(--moss); }
 #tint { background: rgba(30, 80, 170, 0.22); }
+.tabs button { padding: 4px 9px; }
+.rec .sub { font-size: 11px; color: var(--ink-dim); margin-top: 2px; line-height: 1.4; }
+.cbtns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.minibtn { font-family: var(--display); font-size: 13px; padding: 4px 9px; border: 2px solid #000; background: var(--moss); color: #10180c; cursor: pointer; }
+.minibtn.alt { background: #3a403c; color: var(--ink); }
+.minibtn:disabled { background: #2d322f; color: #777; cursor: default; }
+.tagchip { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 0 5px; border: 1px solid var(--edge); color: var(--ink-dim); }
+.tagchip.now { color: #1a1408; background: var(--ochre); border-color: var(--ochre); }
+#signEd .card { width: min(92vw, 380px); display: grid; gap: 10px; }
+#signEd input { font-family: var(--mono); font-size: 16px; padding: 8px 10px; background: #0f1412; color: var(--ink); border: 1px solid var(--edge); width: 100%; box-sizing: border-box; user-select: text; -webkit-user-select: text; }
+#signEd input:focus-visible { outline: 2px solid var(--ochre); }
 </style>
 
 <div id="view"></div>
@@ -193,7 +204,7 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
     </div>
     <div>
       <div class="row" style="justify-content:space-between"><h2 id="craftTitle">Crafting</h2><button class="big alt closebtn" id="invClose" type="button" style="font-size:14px;padding:4px 12px">Close</button></div>
-      <div class="tabs" id="tabs" role="tablist"><button type="button" id="tabCraft" class="on">Crafting</button><button type="button" id="tabJournal">Journal</button></div>
+      <div class="tabs" id="tabs" role="tablist"><button type="button" id="tabCraft" class="on">Crafting</button><button type="button" id="tabJournal">Journal</button><button type="button" id="tabQuests">Quests</button><button type="button" id="tabComps">Crew</button></div>
       <div id="stations"></div>
       <div id="recipes"></div>
       <div id="palette" hidden></div>
@@ -217,7 +228,7 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
       <dt>W A S D</dt><dd>Walk · Shift to sprint</dd>
       <dt>Mouse</dt><dd>Look around</dd>
       <dt>Hold left</dt><dd>Dig a block · attack a creature</dd>
-      <dt>Right click</dt><dd>Place · eat · trade · open doors · use a workbench, kiln or rift stone</dd>
+      <dt>Right click</dt><dd>Place · eat · trade · hire · feed animals · open doors, boxes and signs · use a workbench, kiln or rift stone</dd>
       <dt>E</dt><dd>Pack, crafting and field journal</dd>
       <dt>Space</dt><dd>Jump · swim up</dd>
       <dt>F</dt><dd>Fly (creative mode)</dd>
@@ -236,6 +247,16 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
       <button class="big alt" id="newworld" type="button">New world</button>
     </div>
     <p class="note" id="note">Your world saves in this browser as you play.</p>
+  </div>
+</div>
+<div class="overlay" id="signEd" hidden>
+  <div class="card">
+    <h1 style="font-size:30px">Edit sign<small>Four short lines</small></h1>
+    <input id="sg0" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Line 1">
+    <input id="sg1" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Line 2">
+    <input id="sg2" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Line 3">
+    <input id="sg3" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Line 4">
+    <div class="row"><button class="big" id="signSave" type="button">Save</button><button class="big alt" id="signCancel" type="button">Cancel</button></div>
   </div>
 </div>
 <div class="veil" id="fade"></div>
@@ -280,7 +301,7 @@ function hash2(x, z, s) { let h = (Math.imul(x, 374761393) + Math.imul(z, 668265
 const hash3 = (x, y, z, s) => hash2(Math.imul(x, 31) + y * 7919, z, s);
 
 // ================= texture atlas =================
-const TS = 16, NT = 64;
+const TS = 16, NT = 128;
 const atlas = document.createElement("canvas"); atlas.width = TS * NT; atlas.height = TS;
 const TILE = {}, TILE_AVG = [];
 (function paintAtlas() {
@@ -387,6 +408,52 @@ const TILE = {}, TILE_AVG = [];
   tile("hearth", (x, y) => { const d = Math.hypot(x - 7.5, y - 7.5); if (d > 6) return cobble(x, y, [120, 116, 112]); if (d > 4.6) return vary([70, 52, 40], 5); if (Math.abs(x - y) < 1.5 || Math.abs(x + y - 15) < 1.5) return vary([110, 74, 40], 6); return rnd() < 0.5 ? vary([255, 176, 60], 12) : vary([255, 228, 140], 10); });
   tile("doorBottom", (x, y) => { if (x <= 1 || x >= 14 || y === 15) return vary([92, 62, 34], 4); if (x === 12 && (y === 1 || y === 2)) return [196, 196, 204]; if (y === 7) return vary([110, 76, 42], 4); return x % 4 === 0 ? vary([128, 92, 54], 4) : vary([170, 128, 78], 7); });
   tile("doorTop", (x, y) => { if (x <= 1 || x >= 14 || y === 0) return vary([92, 62, 34], 4); if (x >= 4 && x <= 11 && y >= 3 && y <= 11) return (x === 7 || x === 8 || y === 7) ? vary([92, 62, 34], 4) : CLEAR; return x % 4 === 0 ? vary([128, 92, 54], 4) : vary([170, 128, 78], 7); });
+
+  // ---- storage, signs, decor, biome and holiday tiles ----
+  const frame4 = (x, y) => x === 0 || x === 15 || y === 0 || y === 15;
+  tile("boxTop", (x, y) => frame4(x, y) ? vary([86, 58, 30], 4) : x % 5 === 0 ? vary([112, 78, 44], 5) : vary([150, 108, 62], 6));
+  tile("boxSide", (x, y) => { if (frame4(x, y)) return vary([86, 58, 30], 4); if (y === 5) return vary([100, 70, 38], 4); if ((x === 7 || x === 8) && y >= 5 && y <= 8) return [208, 210, 216]; return y < 5 ? vary([140, 100, 56], 6) : x % 5 === 0 ? vary([112, 78, 44], 5) : vary([156, 114, 66], 6); });
+  tile("vaultTop", (x, y) => frame4(x, y) ? vary([70, 72, 80], 4) : vary([124, 126, 132], 6));
+  tile("vaultSide", (x, y) => { if (frame4(x, y) || y === 3 || y === 12) return vary([66, 68, 76], 4); if ((x === 7 || x === 8) && y >= 5 && y <= 9) return [226, 186, 72]; return rnd() < 0.08 ? vary([100, 102, 108], 5) : vary([128, 130, 136], 6); });
+  tile("signWood", (x, y) => frame4(x, y) ? vary([92, 62, 34], 4) : y % 4 === 1 ? vary([130, 92, 52], 4) : vary([176, 134, 82], 6));
+  tile("fence", (x, y) => x % 8 < 1 ? vary([92, 62, 34], 4) : vary([150, 108, 64], 7));
+  tile("fenceTop", () => vary([170, 128, 76], 6));
+  tile("bedBorder", (x, y) => y < 2 ? vary([150, 108, 64], 4) : (y + (x >> 3)) % 4 === 3 ? vary([96, 64, 40], 5) : vary([144, 102, 66], 7));
+  const bedT = (colAt) => (x, y) => {
+    if (frame4(x, y)) return vary([120, 84, 50], 4);
+    const k = (x * 7 + y * 13) % 11;
+    if (k === 0) return vary(colAt(x, y), 10);
+    if (k === 5 && (x + y) % 2) return vary([250, 214, 90], 8);
+    if ((x + y * 3) % 7 === 0) return vary([72, 140, 52], 10);
+    return vary([92, 64, 44], 9);
+  };
+  tile("bedRed", bedT(() => [214, 52, 48]));
+  tile("bedYellow", bedT(() => [246, 206, 60]));
+  tile("bedMix", bedT((x, y) => (x + y) % 2 ? [214, 52, 48] : [246, 206, 60]));
+  tile("bedBlossom", bedT((x, y) => (x + y) % 2 ? [244, 160, 190] : [252, 224, 236]));
+  tile("hedge", () => rnd() < 0.18 ? vary([34, 84, 40], 6) : rnd() < 0.25 ? vary([70, 128, 56], 8) : vary([48, 104, 48], 9));
+  const rug = (a, b) => (x, y) => frame4(x, y) ? vary([226, 196, 120], 4) : (x === 1 || x === 14 || y === 1 || y === 14) ? vary(b, 4) : (x + y) % 4 === 0 ? vary(b, 5) : vary(a, 6);
+  tile("rugRed", rug([176, 48, 44], [236, 190, 90]));
+  tile("rugGold", rug([222, 176, 64], [150, 70, 40]));
+  tile("rugGreen", rug([62, 128, 70], [220, 210, 150]));
+  tile("reedMat", (x, y) => y % 3 === 0 ? vary([120, 96, 52], 5) : x % 5 === 0 ? vary([150, 126, 70], 5) : vary([176, 152, 92], 7));
+  tile("whitewash", () => rnd() < 0.12 ? vary([212, 208, 196], 4) : vary([232, 228, 216], 4));
+  tile("stoneTile", (x, y) => x % 8 === 0 || y % 8 === 0 ? vary([86, 88, 94], 4) : vary([138, 140, 146], 6));
+  tile("hay", (x, y) => y % 4 === 3 ? vary([150, 112, 50], 5) : (x * 3 + y) % 5 === 0 ? vary([240, 206, 110], 6) : vary([214, 176, 82], 8));
+  tile("mossCobble", () => rnd() < 0.38 ? vary([84, 124, 58], 8) : vary([122, 118, 114], 9));
+  tile("carvedSand", (x, y) => { if (frame4(x, y)) return vary([190, 168, 112], 5); const d = Math.abs(x - 7.5) + Math.abs(y - 7.5); if (Math.abs(d - 5) < 1) return vary([170, 140, 86], 5); return vary([222, 202, 148], 6); });
+  tile("frostBrick", (x, y) => (y & 3) === 3 || (x + (y >> 2) * 4) % 8 === 0 ? vary([120, 160, 196], 5) : vary([188, 222, 244], 6));
+  tile("mudBrick", (x, y) => (y & 3) === 3 || (x + (y >> 2) * 4) % 8 === 0 ? vary([60, 44, 32], 4) : vary([108, 80, 58], 7));
+  const lamp = (frame, glow, fill) => (x, y) => { if (frame4(x, y) || y === 3 || y === 12) return vary(frame, 4); const d = Math.hypot(x - 7.5, y - 7.5); return d < 3.2 ? glow : vary(fill, 6); };
+  tile("desertLamp", lamp([130, 92, 52], [255, 236, 170], [232, 170, 80]));
+  tile("snowLamp", lamp([196, 216, 232], [226, 248, 255], [150, 200, 236]));
+  tile("paperLamp", lamp([200, 150, 50], [255, 214, 120], [220, 56, 42]));
+  const bulbs = [[255, 80, 80], [80, 220, 100], [255, 220, 70], [90, 150, 255]];
+  tile("lightsTile", (x, y) => (x + y) % 4 === 0 ? bulbs[(x >> 2) % 4] : vary([30, 60, 40], 5));
+  tile("pumpkinTop", (x, y) => Math.hypot(x - 7.5, y - 7.5) < 2.2 ? vary([70, 110, 40], 5) : x % 4 === 0 ? vary([196, 92, 20], 5) : vary([230, 126, 30], 6));
+  tile("pumpkinSide", (x, y) => { const eye = (x >= 3 && x <= 5 || x >= 10 && x <= 12) && y >= 4 && y <= 6, mouth = y >= 9 && y <= 11 && x >= 3 && x <= 12 && (x % 3 !== 0 || y === 10); if (eye || mouth) return [255, 236, 140]; return x % 5 === 0 ? vary([196, 92, 20], 5) : vary([232, 128, 32], 6); });
+  tile("giftTop", (x, y) => (x >= 7 && x <= 8) || (y >= 7 && y <= 8) ? vary([240, 200, 70], 4) : vary([196, 40, 44], 6));
+  tile("giftSide", (x, y) => (x >= 7 && x <= 8) ? vary([200, 40, 44], 4) : (y >= 7 && y <= 8) ? vary([200, 40, 44], 4) : vary([42, 128, 70], 6));
   ctx.putImageData(img, 0, 0);
 })();
 
@@ -396,7 +463,7 @@ const BL = { AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4, LOG: 5, LEAVES: 6, PL
   TORCH: 41, TORCH_W: 42, TORCH_E: 43, TORCH_N: 44, TORCH_S: 45, LANTERN: 46, ADOBE: 47, THATCH: 48, PPLANKS: 49, BEDROLL: 50, HEARTH: 51, PSNOW: 52 };
 const I = { STICK: 100, COAL: 101, SHARD: 102, MEAT: 103, ROAST: 104, FIBER: 105, TONIC: 106, HIDE: 107,
   WPICK: 110, SPICK: 111, EPICK: 112, WSWORD: 113, SSWORD: 114, ESWORD: 115, WAXE: 116, SAXE: 117, WSHOVEL: 118, SSHOVEL: 119,
-  ANTLER: 120, MOONDUST: 121, CRYSTAL: 122, FANG: 123, PELT: 124, G_PLANKS: 900, G_LOG: 901, G_HLOG: 902 };
+  ANTLER: 120, MOONDUST: 121, CRYSTAL: 122, FANG: 123, PELT: 124, SEED: 130, FEED: 131, JERKY: 132, BAIT: 133, STAR: 134, G_PLANKS: 900, G_LOG: 901, G_HLOG: 902, G_LEAF: 903, G_COBBLE: 904, G_RUG: 905 };
 const B = [];
 const blk = (id, o) => { B[id] = o; };
 const DOWN = [0, -1, 0];
@@ -423,7 +490,7 @@ blk(BL.LAVA,    { n: "Lava", t: "lava", tr: 1, liq: 1, bright: 1, emit: 13, hard
 blk(BL.GLOW,    { n: "Glowcap", t: "glowcap", hard: 0.4, bright: 1, emit: 12 });
 blk(BL.RIFT,    { n: "Rift Stone", t: ["riftTop", "riftTop", "riftSide"], hard: 3, tool: "pick", tier: 1, bright: 1, emit: 10 });
 blk(BL.ASHBRICK,{ n: "Ashbrick", t: "ashbrick", hard: 3.2, tool: "pick", tier: 1 });
-blk(BL.TGRASS,  { n: "Tall Grass", t: "tallGrass", tr: 1, plant: 1, pass: 1, att: DOWN, hard: 0.05, drop: () => Math.random() < 0.35 ? I.FIBER : 0 });
+blk(BL.TGRASS,  { n: "Tall Grass", t: "tallGrass", tr: 1, plant: 1, pass: 1, att: DOWN, hard: 0.05, drop: () => { const r = Math.random(); return r < 0.3 ? I.FIBER : r < 0.45 ? I.SEED : 0; } });
 blk(BL.RFLOWER, { n: "Red Flower", t: "redFlower", tr: 1, plant: 1, pass: 1, att: DOWN, hard: 0.05 });
 blk(BL.YFLOWER, { n: "Yellow Flower", t: "yellowFlower", tr: 1, plant: 1, pass: 1, att: DOWN, hard: 0.05 });
 blk(BL.FERN,    { n: "Fire Fern", t: "fireFern", tr: 1, plant: 1, pass: 1, att: DOWN, hard: 0.05 });
@@ -456,6 +523,32 @@ for (let f = 0; f < 4; f++) for (let o = 0; o < 2; o++) for (let h = 0; h < 2; h
   const id = BL.DOOR + f * 4 + o * 2 + h;
   blk(id, { n: "Door", t: h ? "doorTop" : "doorBottom", tr: 1, door: 1, facing: f, open: o, top: h, pass: o ? 1 : 0, att: DOWN, hard: 1.2, tool: "axe", drop: 0, hidden: id !== BL.DOOR ? 1 : 0 });
 }
+
+Object.assign(BL, { STORAGE: 69, VAULT: 70, SIGN: 71, FENCE: 72, POST: 73, BED_R: 74, BED_Y: 75, BED_M: 76, HEDGE: 77, RUG_R: 78, RUG_G: 79, RUG_L: 80, WHITE: 81, STILE: 82,
+  HAY: 83, MOSSY: 84, CARVED: 85, DLAMP: 86, FROST: 87, SLAMP: 88, REEDMAT: 89, MUDBRICK: 90, PUMPKIN: 91, GIFT: 92, XLIGHTS: 93, BED_P: 94, PLAMP: 95 });
+blk(BL.STORAGE, { n: "Storage Box", t: ["boxTop", "boxTop", "boxSide"], hard: 1.6, tool: "axe", box: 27 });
+blk(BL.VAULT,   { n: "Stonebound Box", t: ["vaultTop", "vaultTop", "vaultSide"], hard: 3, tool: "pick", box: 54 });
+blk(BL.SIGN,    { n: "Sign", t: "signWood", tr: 1, sign: 1, hard: 0.6, tool: "axe" });
+blk(BL.FENCE,   { n: "Fence Post", t: ["fenceTop", "fenceTop", "fence"], tr: 1, inset: 5 / 16, hard: 1, tool: "axe" });
+blk(BL.POST,    { n: "Stone Post", t: "cobble", tr: 1, inset: 5 / 16, hard: 2, tool: "pick" });
+const bedDef = (n, t) => ({ n, t: [t, "dirt", "bedBorder"], tr: 1, pass: 1, low: 0.4, att: DOWN, hard: 0.4, tool: "axe" });
+blk(BL.BED_R, bedDef("Red Flower Bed", "bedRed")); blk(BL.BED_Y, bedDef("Yellow Flower Bed", "bedYellow")); blk(BL.BED_M, bedDef("Wildflower Bed", "bedMix")); blk(BL.BED_P, bedDef("Blossom Bed", "bedBlossom"));
+blk(BL.HEDGE,   { n: "Hedge", t: "hedge", hard: 0.4 });
+const rugDef = (n, t) => ({ n, t: [t, t, t], tr: 1, pass: 1, low: 0.06, att: DOWN, hard: 0.2 });
+blk(BL.RUG_R, rugDef("Red Rug", "rugRed")); blk(BL.RUG_L, rugDef("Gold Rug", "rugGold")); blk(BL.RUG_G, rugDef("Green Rug", "rugGreen")); blk(BL.REEDMAT, rugDef("Reed Mat", "reedMat"));
+blk(BL.WHITE,   { n: "Whitewash", t: "whitewash", hard: 1.5, tool: "pick" });
+blk(BL.STILE,   { n: "Stone Tile", t: "stoneTile", hard: 2, tool: "pick" });
+blk(BL.HAY,     { n: "Hay Bale", t: "hay", hard: 0.4 });
+blk(BL.MOSSY,   { n: "Mossy Cobble", t: "mossCobble", hard: 2.6, tool: "pick" });
+blk(BL.CARVED,  { n: "Carved Sandstone", t: "carvedSand", hard: 2, tool: "pick" });
+blk(BL.FROST,   { n: "Frost Brick", t: "frostBrick", hard: 2.4, tool: "pick" });
+blk(BL.MUDBRICK,{ n: "Mud Brick", t: "mudBrick", hard: 1.8, tool: "pick" });
+blk(BL.DLAMP,   { n: "Desert Lantern", t: "desertLamp", tr: 1, inset: 3 / 16, bright: 1, emit: 14, hard: 0.5 });
+blk(BL.SLAMP,   { n: "Snow Lantern", t: "snowLamp", tr: 1, inset: 3 / 16, bright: 1, emit: 13, hard: 0.5 });
+blk(BL.PLAMP,   { n: "Paper Lantern", t: "paperLamp", tr: 1, inset: 3 / 16, bright: 1, emit: 14, hard: 0.5 });
+blk(BL.XLIGHTS, { n: "Festive Lights", t: "lightsTile", tr: 1, inset: 5 / 16, bright: 1, emit: 12, hard: 0.3 });
+blk(BL.PUMPKIN, { n: "Pumpkin Lantern", t: ["pumpkinTop", "pumpkinTop", "pumpkinSide"], bright: 1, emit: 14, hard: 0.8, tool: "axe" });
+blk(BL.GIFT,    { n: "Gift Box", t: ["giftTop", "giftTop", "giftSide"], tr: 1, inset: 2 / 16, hard: 0.6, tool: "axe" });
 for (const d of B) if (d) { if (typeof d.t === "string") d.t = [d.t, d.t, d.t]; d.t = d.t.map(nm => TILE[nm]); }
 const solid = b => b !== 0 && !B[b].liq && !B[b].pass;
 const opaque = b => b !== 0 && !B[b].tr;
@@ -471,6 +564,11 @@ ITEM[I.FANG] = { n: "Rime Fang", rare: 1 }; ITEM[I.PELT] = { n: "Gilded Pelt", r
 ITEM[I.G_PLANKS] = { n: "Any Planks", group: [BL.PLANKS, BL.PPLANKS] };
 ITEM[I.G_LOG] = { n: "Any Log", group: [BL.LOG, BL.PLOG, BL.SLOG, BL.MLOG] };
 ITEM[I.G_HLOG] = { n: "Broadleaf Log", group: [BL.LOG, BL.SLOG, BL.MLOG] };
+ITEM[I.G_LEAF] = { n: "Any Leaves", group: [BL.LEAVES, BL.PLEAVES, BL.SLEAVES, BL.MLEAVES] };
+ITEM[I.G_COBBLE] = { n: "Any Cobble", group: [BL.COBBLE, BL.MOSSY] };
+ITEM[I.G_RUG] = { n: "Any Rug", group: [BL.RUG_R, BL.RUG_L, BL.RUG_G, BL.REEDMAT] };
+ITEM[I.SEED] = { n: "Wild Seed" }; ITEM[I.FEED] = { n: "Forage Mix", treat: 1 }; ITEM[I.JERKY] = { n: "Smoked Jerky", treat: 1 };
+ITEM[I.BAIT] = { n: "Critter Bait", treat: 1 }; ITEM[I.STAR] = { n: "Starlight Treat", treat: 1 };
 tool(I.WPICK, "Wooden Pick", "pick", 1, 2); tool(I.SPICK, "Stone Pick", "pick", 2, 3); tool(I.EPICK, "Ember Pick", "pick", 3, 4);
 tool(I.WSWORD, "Wooden Sword", "sword", 1, 4); tool(I.SSWORD, "Stone Sword", "sword", 2, 5); tool(I.ESWORD, "Ember Sword", "sword", 3, 8);
 tool(I.WAXE, "Wooden Axe", "axe", 1, 3); tool(I.SAXE, "Stone Axe", "axe", 2, 4);
@@ -489,15 +587,20 @@ const RECIPES = [
   { out: BL.TORCH, n: 4, ing: [[I.COAL, 1], [I.STICK, 1]], st: null },
   { out: BL.BENCH, n: 1, ing: [[I.G_PLANKS, 4]], st: null },
   { out: BL.BEDROLL, n: 1, ing: [[I.FIBER, 4], [I.G_PLANKS, 2]], st: null },
+  { out: I.FEED, n: 2, ing: [[I.FIBER, 2], [I.SEED, 2]], st: null, tag: "Taming" },
+  { out: I.BAIT, n: 3, ing: [[I.FIBER, 2], [I.MEAT, 1]], st: null, tag: "Taming" },
+  { out: I.ROAST, n: 1, ing: [[I.JERKY, 1]], st: null, tag: "Salvage" },
+  { out: I.FIBER, n: 1, ing: [[I.BAIT, 2]], st: null, tag: "Salvage" },
+  { out: BL.GLOW, n: 1, ing: [[I.STAR, 2]], st: null, tag: "Salvage" },
   { out: I.WPICK, n: 1, ing: [[I.G_PLANKS, 3], [I.STICK, 2]], st: "bench" },
   { out: I.WAXE, n: 1, ing: [[I.G_PLANKS, 3], [I.STICK, 2]], st: "bench" },
   { out: I.WSHOVEL, n: 1, ing: [[I.G_PLANKS, 1], [I.STICK, 2]], st: "bench" },
   { out: I.WSWORD, n: 1, ing: [[I.G_PLANKS, 2], [I.STICK, 1]], st: "bench" },
-  { out: I.SPICK, n: 1, ing: [[BL.COBBLE, 3], [I.STICK, 2]], st: "bench" },
-  { out: I.SAXE, n: 1, ing: [[BL.COBBLE, 3], [I.STICK, 2]], st: "bench" },
-  { out: I.SSHOVEL, n: 1, ing: [[BL.COBBLE, 1], [I.STICK, 2]], st: "bench" },
-  { out: I.SSWORD, n: 1, ing: [[BL.COBBLE, 2], [I.STICK, 1]], st: "bench" },
-  { out: BL.KILN, n: 1, ing: [[BL.COBBLE, 8]], st: "bench" },
+  { out: I.SPICK, n: 1, ing: [[I.G_COBBLE, 3], [I.STICK, 2]], st: "bench" },
+  { out: I.SAXE, n: 1, ing: [[I.G_COBBLE, 3], [I.STICK, 2]], st: "bench" },
+  { out: I.SSHOVEL, n: 1, ing: [[I.G_COBBLE, 1], [I.STICK, 2]], st: "bench" },
+  { out: I.SSWORD, n: 1, ing: [[I.G_COBBLE, 2], [I.STICK, 1]], st: "bench" },
+  { out: BL.KILN, n: 1, ing: [[I.G_COBBLE, 8]], st: "bench" },
   { out: BL.DOOR, n: 1, ing: [[I.G_PLANKS, 6]], st: "bench" },
   { out: BL.LANTERN, n: 1, ing: [[BL.TORCH, 1], [BL.GLASS, 2], [BL.COBBLE, 1]], st: "bench" },
   { out: BL.HEARTH, n: 1, ing: [[BL.COBBLE, 4], [I.G_LOG, 2], [I.COAL, 1]], st: "bench" },
@@ -506,6 +609,57 @@ const RECIPES = [
   { out: I.EPICK, n: 1, ing: [[I.SHARD, 3], [I.STICK, 2]], st: "bench" },
   { out: I.ESWORD, n: 1, ing: [[I.SHARD, 2], [I.STICK, 1]], st: "bench" },
   { out: BL.RIFT, n: 1, ing: [[I.SHARD, 4], [BL.GLASS, 2], [BL.COBBLE, 2]], st: "bench" },
+  { out: BL.STORAGE, n: 1, ing: [[I.G_PLANKS, 8]], st: "bench" },
+  { out: BL.VAULT, n: 1, ing: [[BL.STORAGE, 1], [BL.COBBLE, 8], [I.COAL, 2]], st: "bench" },
+  { out: BL.SIGN, n: 2, ing: [[I.G_PLANKS, 2], [I.STICK, 1]], st: "bench", tag: "Decor" },
+  { out: BL.FENCE, n: 4, ing: [[I.G_PLANKS, 3], [I.STICK, 2]], st: "bench", tag: "Decor" },
+  { out: BL.POST, n: 4, ing: [[BL.COBBLE, 4]], st: "bench", tag: "Decor" },
+  { out: BL.BED_R, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.RFLOWER, 2]], st: "bench", tag: "Decor" },
+  { out: BL.BED_Y, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.YFLOWER, 2]], st: "bench", tag: "Decor" },
+  { out: BL.BED_M, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.RFLOWER, 1], [BL.YFLOWER, 1]], st: "bench", tag: "Decor" },
+  { out: BL.HEDGE, n: 2, ing: [[I.G_LEAF, 4], [I.STICK, 1]], st: "bench", tag: "Decor" },
+  { out: BL.RUG_R, n: 2, ing: [[I.FIBER, 4], [BL.RFLOWER, 1]], st: "bench", tag: "Decor" },
+  { out: BL.RUG_L, n: 2, ing: [[I.FIBER, 4], [BL.YFLOWER, 1]], st: "bench", tag: "Decor" },
+  { out: BL.RUG_G, n: 2, ing: [[I.FIBER, 4], [BL.REEDS, 1]], st: "bench", tag: "Decor" },
+  { out: BL.HAY, n: 2, ing: [[I.FIBER, 6]], st: "bench", tag: "Meadow" },
+  { out: BL.MOSSY, n: 4, ing: [[BL.COBBLE, 4], [I.FIBER, 2]], st: "bench", tag: "Woodland" },
+  { out: BL.DLAMP, n: 1, ing: [[BL.TORCH, 1], [BL.SANDSTONE, 2], [BL.GLASS, 1]], st: "bench", tag: "Dunes" },
+  { out: BL.SLAMP, n: 1, ing: [[BL.TORCH, 1], [BL.PSNOW, 2], [BL.GLASS, 1]], st: "bench", tag: "Tundra" },
+  { out: BL.REEDMAT, n: 2, ing: [[BL.REEDS, 4]], st: "bench", tag: "Marsh" },
+  { out: BL.PUMPKIN, n: 1, ing: [[BL.HAY, 2], [BL.TORCH, 1]], st: "bench", tag: "Halloween" },
+  { out: BL.GIFT, n: 1, ing: [[I.G_PLANKS, 2], [I.FIBER, 2], [BL.RFLOWER, 1]], st: "bench", tag: "Winter holidays" },
+  { out: BL.XLIGHTS, n: 4, ing: [[BL.TORCH, 1], [BL.GLASS, 1], [I.FIBER, 2]], st: "bench", tag: "Winter holidays" },
+  { out: BL.BED_P, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.RFLOWER, 1], [I.FIBER, 1]], st: "bench", tag: "Spring" },
+  { out: BL.PLAMP, n: 1, ing: [[I.FIBER, 2], [BL.TORCH, 1], [I.STICK, 1]], st: "bench", tag: "Lunar festival" },
+  { out: I.FEED, n: 3, ing: [[BL.HAY, 1]], st: "bench", tag: "Taming" },
+  { out: I.STAR, n: 2, ing: [[I.FEED, 2], [BL.GLOW, 1], [I.SHARD, 1]], st: "bench", tag: "Taming" },
+  { out: BL.PLANKS, n: 4, ing: [[BL.STORAGE, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.STORAGE, n: 1, ing: [[BL.VAULT, 1]], st: "bench", extra: [[BL.COBBLE, 4]], tag: "Salvage" },
+  { out: I.STICK, n: 1, ing: [[BL.SIGN, 1]], st: "bench", tag: "Salvage" },
+  { out: I.STICK, n: 1, ing: [[BL.FENCE, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.COBBLE, n: 1, ing: [[BL.POST, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.PLANKS, n: 1, ing: [[BL.BED_R, 1]], st: "bench", extra: [[BL.DIRT, 1]], tag: "Salvage" },
+  { out: BL.PLANKS, n: 1, ing: [[BL.BED_Y, 1]], st: "bench", extra: [[BL.DIRT, 1]], tag: "Salvage" },
+  { out: BL.PLANKS, n: 1, ing: [[BL.BED_M, 1]], st: "bench", extra: [[BL.DIRT, 1]], tag: "Salvage" },
+  { out: BL.PLANKS, n: 1, ing: [[BL.BED_P, 1]], st: "bench", extra: [[BL.DIRT, 1]], tag: "Salvage" },
+  { out: I.SEED, n: 2, ing: [[BL.HEDGE, 1]], st: "bench", tag: "Salvage" },
+  { out: I.FIBER, n: 1, ing: [[BL.RUG_R, 1]], st: "bench", tag: "Salvage" },
+  { out: I.FIBER, n: 1, ing: [[BL.RUG_L, 1]], st: "bench", tag: "Salvage" },
+  { out: I.FIBER, n: 1, ing: [[BL.RUG_G, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.REEDS, n: 1, ing: [[BL.REEDMAT, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.SAND, n: 1, ing: [[BL.WHITE, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.COBBLE, n: 1, ing: [[BL.STILE, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.COBBLE, n: 1, ing: [[BL.MOSSY, 1]], st: "bench", extra: [[I.FIBER, 1]], tag: "Salvage" },
+  { out: BL.SAND, n: 2, ing: [[BL.CARVED, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.PSNOW, n: 2, ing: [[BL.FROST, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.MUD, n: 2, ing: [[BL.MUDBRICK, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.TORCH, n: 1, ing: [[BL.DLAMP, 1]], st: "bench", extra: [[BL.SANDSTONE, 1], [BL.GLASS, 1]], tag: "Salvage" },
+  { out: BL.TORCH, n: 1, ing: [[BL.SLAMP, 1]], st: "bench", extra: [[BL.PSNOW, 1], [BL.GLASS, 1]], tag: "Salvage" },
+  { out: BL.TORCH, n: 1, ing: [[BL.PLAMP, 1]], st: "bench", extra: [[I.FIBER, 1]], tag: "Salvage" },
+  { out: I.FIBER, n: 1, ing: [[BL.XLIGHTS, 1]], st: "bench", tag: "Salvage" },
+  { out: BL.HAY, n: 1, ing: [[BL.PUMPKIN, 1]], st: "bench", extra: [[BL.TORCH, 1]], tag: "Salvage" },
+  { out: BL.PLANKS, n: 1, ing: [[BL.GIFT, 1]], st: "bench", extra: [[I.FIBER, 1]], tag: "Salvage" },
+  { out: BL.BEDROLL, n: 1, ing: [[I.G_RUG, 1], [I.FIBER, 2]], st: "bench", tag: "Decor" },
   { out: I.ROAST, n: 1, ing: [[I.MEAT, 1]], st: "kiln" },
   { out: I.TONIC, n: 1, ing: [[BL.RFLOWER, 2], [BL.YFLOWER, 2], [BL.REEDS, 1]], st: "kiln" },
   { out: BL.GLASS, n: 4, ing: [[BL.SAND, 4], [I.COAL, 1]], st: "kiln" },
@@ -515,6 +669,12 @@ const RECIPES = [
   { out: BL.ADOBE, n: 4, ing: [[BL.MUD, 4], [I.FIBER, 1]], st: "kiln" },
   { out: BL.ASHBRICK, n: 4, ing: [[BL.ASH, 4]], st: "kiln" },
   { out: I.COAL, n: 2, ing: [[I.G_LOG, 3]], st: "kiln" },
+  { out: I.JERKY, n: 2, ing: [[I.MEAT, 2], [I.COAL, 1]], st: "kiln", tag: "Taming" },
+  { out: BL.WHITE, n: 4, ing: [[BL.STONE, 2], [BL.SAND, 2]], st: "kiln", tag: "Decor" },
+  { out: BL.STILE, n: 4, ing: [[BL.STONE, 4]], st: "kiln", tag: "Decor" },
+  { out: BL.CARVED, n: 4, ing: [[BL.SANDSTONE, 4]], st: "kiln", tag: "Dunes" },
+  { out: BL.FROST, n: 4, ing: [[BL.PSNOW, 4], [BL.COBBLE, 1]], st: "kiln", tag: "Tundra" },
+  { out: BL.MUDBRICK, n: 4, ing: [[BL.MUD, 4], [I.COAL, 1]], st: "kiln", tag: "Marsh" },
 ];
 const STATION_NAME = { bench: "Workbench", kiln: "Kiln" };
 
@@ -547,6 +707,12 @@ function spriteFor(id) {
   else if (id === I.CRYSTAL) { for (let y = 1; y < 15; y++) for (let x = 0; x < 16; x++) { const w = y < 4 ? y : y > 11 ? 15 - y : 4; if (Math.abs(x - 7.5) < w) P(x, y, x < 7.5 ? "#c8f6ff" : "#6ccbe0"); } }
   else if (id === I.FANG) { for (let i = 0; i < 10; i++) { const x = 5 + Math.round(Math.sin(i / 9 * 1.6) * 5), w = Math.max(1, 3 - (i >> 2)); for (let k = 0; k < w; k++) P(x + k, 3 + i, i > 7 ? "#d8e4ec" : "#f6f8fa"); } }
   else if (id === I.PELT) { for (let y = 3; y < 13; y++) for (let x = 2; x < 14; x++) { if ((x === 2 || x === 13) && (y === 3 || y === 12)) continue; P(x, y, (x + y * 2) % 5 === 0 ? "#fff0a8" : (x * 3 + y) % 7 === 0 ? "#b8861e" : "#e2b44a"); } }
+
+  if (id === I.SEED) { for (const [x, y] of [[4, 9], [7, 6], [10, 10], [6, 12], [11, 6], [8, 9]]) { P(x, y, "#d8c070"); P(x + 1, y, "#a8883a"); P(x, y + 1, "#a8883a"); } }
+  else if (id === I.FEED) { for (let y = 5; y < 14; y++) for (let x = 2; x < 14; x++) { const e = ((x - 7.5) ** 2) / 36 + ((y - 12) ** 2) / 30; if (e < 1) P(x, y, (x * 7 + y * 3) % 5 === 0 ? "#d8c070" : (x + y) % 3 === 0 ? "#8aa84a" : "#6a8a3a"); } }
+  else if (id === I.JERKY) { for (let i = 0; i < 12; i++) { const o = Math.floor(i * 0.6); P(2 + i, 10 - o, i % 3 ? "#4a1e14" : "#8a4630"); P(2 + i, 11 - o, "#6a2e20"); P(2 + i, 12 - o, "#8a4630"); } }
+  else if (id === I.BAIT) { for (const [cx, cy] of [[6, 5], [9, 8], [6, 11]]) for (let y = -1; y <= 1; y++) for (let x = -2; x <= 2; x++) if (Math.abs(x) + Math.abs(y) * 1.6 < 3) P(cx + x, cy + y, (x + y) % 2 ? "#e8dcc4" : "#cdbf9e"); for (const y of [4, 7, 10, 13]) P(12, y, "#8a9a4a"); }
+  else if (id === I.STAR) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = Math.abs(x - 7.5), dy = Math.abs(y - 7.5); if (dx * dy < 3 && dx + dy < 8) P(x, y, dx + dy < 2.5 ? "#ffffff" : dx + dy < 4.5 ? "#ffe08a" : "#b88aff"); } }
   return c;
 }
 const ICONS = new Map();
@@ -1208,6 +1374,12 @@ function buildChunk(ch) {
     const def = B[b];
     if (def.plant) { crossMesh(A, x, y, z, def, skyL(x, y, z) / 15, blkL(x, y, z) / 15); continue; }
     if (def.torch) { torchMesh(A, x, y, z, def, skyL(x, y, z) / 15, blkL(x, y, z) / 15); continue; }
+    if (def.sign) {
+      let ls = skyL(x, y, z), lb = blkL(x, y, z);
+      for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ls = Math.max(ls, skyL(x + ox, y, z + oz)); lb = Math.max(lb, blkL(x + ox, y, z + oz)); }
+      const sg = signs.get(ckey(ch.cx * CX + x, y, ch.cz * CZ + z));
+      signMesh(A, x, y, z, def, ls / 15, lb / 15, sg ? sg.f : [0, 1]); continue;
+    }
     if (def.door) {
       let ls = skyL(x, y, z), lb = blkL(x, y, z);
       for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ls = Math.max(ls, skyL(x + ox, y, z + oz)); lb = Math.max(lb, blkL(x + ox, y, z + oz)); }
@@ -1461,21 +1633,22 @@ let invOpen = false, tradeWith = null, viewTab = "craft";
 const packGrid = $("packGrid"), hotGrid = $("hotGrid"), invSlots = [];
 for (let i = 0; i < 36; i++) {
   const s = makeSlot(i >= 27 ? String(i - 26) : null), idx = i >= 27 ? i - 27 : i + 9;
-  s.addEventListener("click", () => slotClick(idx, false));
+  s.addEventListener("click", e => { if (e.shiftKey && boxOpen) quickMove(inv, idx, boxOpen.slots); else slotClick(idx, false); });
   s.addEventListener("contextmenu", e => { e.preventDefault(); slotClick(idx, true); });
   (i >= 27 ? hotGrid : packGrid).appendChild(s); invSlots[idx] = s;
 }
-function slotClick(i, half) {
-  const s = inv[i];
+function slotClickArr(arr, i, half) {
+  const s = arr[i];
   if (half) {
-    if (cursor) { if (!s) { inv[i] = { id: cursor.id, n: 1 }; cursor.n--; } else if (s.id === cursor.id && s.n < stackMax(s.id)) { s.n++; cursor.n--; } if (cursor.n <= 0) cursor = null; }
-    else if (s) { const k = Math.ceil(s.n / 2); cursor = { id: s.id, n: k }; s.n -= k; if (!s.n) inv[i] = null; }
-  } else if (!cursor) { if (s) { cursor = s; inv[i] = null; } }
-  else if (!s) { inv[i] = cursor; cursor = null; }
+    if (cursor) { if (!s) { arr[i] = { id: cursor.id, n: 1 }; cursor.n--; } else if (s.id === cursor.id && s.n < stackMax(s.id)) { s.n++; cursor.n--; } if (cursor.n <= 0) cursor = null; }
+    else if (s) { const k = Math.ceil(s.n / 2); cursor = { id: s.id, n: k }; s.n -= k; if (!s.n) arr[i] = null; }
+  } else if (!cursor) { if (s) { cursor = s; arr[i] = null; } }
+  else if (!s) { arr[i] = cursor; cursor = null; }
   else if (s.id === cursor.id && s.n < stackMax(s.id)) { const k = Math.min(cursor.n, stackMax(s.id) - s.n); s.n += k; cursor.n -= k; if (!cursor.n) cursor = null; }
-  else { inv[i] = cursor; cursor = s; }
+  else { arr[i] = cursor; cursor = s; }
   invChanged(); renderCursor();
 }
+function slotClick(i, half) { slotClickArr(inv, i, half); }
 const curEl = $("cursor");
 function renderCursor() {
   curEl.innerHTML = ""; curEl.hidden = !cursor;
@@ -1488,7 +1661,8 @@ function nearBlock(id, r = 4) {
   return false;
 }
 let stations = { bench: false, kiln: false };
-const journal = { seen: new Set(), kills: {} };
+const journal = { seen: new Set(), kills: {}, tamed: new Set() };
+const SEASONS = new Set(["Halloween", "Winter holidays", "Harvest", "Spring", "Lunar festival", "Summer"]);
 function discover(type) {
   if (journal.seen.has(type)) return;
   journal.seen.add(type); dirtySave = true;
@@ -1510,11 +1684,14 @@ function recRow(outId, outN, ing, ok, extra, label, onClick) {
 function renderInv() {
   for (let i = 0; i < 36; i++) paintSlot(invSlots[i], inv[i]);
   const crea = mode === "creative", list = $("recipes"), pal = $("palette"), st = $("stations");
-  $("tabs").hidden = !!tradeWith;
+  $("tabs").hidden = !!tradeWith || !!boxOpen;
   $("tabCraft").textContent = crea ? "All items" : "Crafting";
-  $("tabCraft").classList.toggle("on", viewTab === "craft"); $("tabJournal").classList.toggle("on", viewTab === "journal");
+  $("tabCraft").classList.toggle("on", viewTab === "craft"); $("tabJournal").classList.toggle("on", viewTab === "journal"); $("tabQuests").classList.toggle("on", viewTab === "quests"); $("tabComps").classList.toggle("on", viewTab === "comps");
   const scroll = list.scrollTop;
+  if (boxOpen) { renderBox(); list.scrollTop = scroll; return; }
   if (tradeWith) { renderTrades(); list.scrollTop = scroll; return; }
+  if (viewTab === "quests") { pal.hidden = true; st.hidden = true; list.hidden = false; $("craftTitle").textContent = "Quest Log"; renderQuests(); list.scrollTop = scroll; return; }
+  if (viewTab === "comps") { pal.hidden = true; st.hidden = true; list.hidden = false; $("craftTitle").textContent = "Companions"; renderComps(); list.scrollTop = scroll; return; }
   if (viewTab === "journal") { pal.hidden = true; st.hidden = true; list.hidden = false; $("craftTitle").textContent = "Field Journal"; renderJournal(); list.scrollTop = scroll; return; }
   list.hidden = crea; pal.hidden = !crea; st.hidden = crea;
   $("craftTitle").textContent = crea ? "All blocks & items" : "Crafting";
@@ -1526,7 +1703,10 @@ function renderInv() {
   for (const r of RECIPES) {
     if (r.st !== lastSt) { lastSt = r.st; const h = document.createElement("div"); h.className = "sect"; h.textContent = r.st ? `At a ${STATION_NAME[r.st]}` : "By hand"; list.appendChild(h); }
     const have = r.ing.every(([id, n]) => countItem(id) >= n), stOk = !r.st || stations[r.st];
-    list.appendChild(recRow(r.out, r.n, r.ing, have && stOk, stOk ? "" : `needs ${STATION_NAME[r.st]}`, "", () => craft(r)));
+    const rr = recRow(r.out, r.n, r.ing, have && stOk, stOk ? "" : `needs ${STATION_NAME[r.st]}`, "", () => craft(r));
+    if (r.extra) { const ex = document.createElement("div"); ex.className = "sub"; ex.textContent = "+ " + r.extra.map(([id, n]) => `${n} ${ITEM[id].n}`).join(", "); rr.querySelector(".nm").after(ex); }
+    if (r.tag) { const sp = document.createElement("span"); const here = r.tag === seasonNow() || r.tag === BIOME_NAME[biomeAt(Math.floor(player.p.x), Math.floor(player.p.z))]; sp.className = "tagchip" + (here ? " now" : ""); sp.textContent = r.tag + (here && SEASONS.has(r.tag) ? " · in season" : here ? " · here" : ""); rr.querySelector(".ing").prepend(sp); }
+    list.appendChild(rr);
   }
   list.scrollTop = scroll;
 }
@@ -1544,41 +1724,16 @@ function renderJournal() {
     top.append(nm, tag); row.appendChild(top);
     const p = document.createElement("div"); p.className = "jhab"; p.textContent = d.hab + (seen && journal.kills[t] ? ` · defeated ${journal.kills[t]}` : ""); row.appendChild(p);
     if (seen && d.note) { const q = document.createElement("div"); q.className = "jnote"; q.textContent = d.note; row.appendChild(q); }
+    if (seen && d.tame) { const q = document.createElement("div"); q.className = "jnote"; q.style.color = "var(--moss)"; q.textContent = `Tame it with ${ITEM[d.tame.food].n} (${d.tame.need} feedings)` + (journal.tamed.has(t) ? " · tamed" : ""); row.appendChild(q); }
     list.appendChild(row);
-  }
-}
-function renderTrades() {
-  const list = $("recipes"); $("palette").hidden = true; $("stations").hidden = true; list.hidden = false;
-  $("craftTitle").textContent = "Trade"; list.innerHTML = "";
-  const p = tradeWith.person;
-  if (p) {
-    const card = document.createElement("div"); card.className = "profile";
-    const nm = document.createElement("div"); nm.className = "pn"; nm.textContent = p.name;
-    const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = `${PROF[p.prof].n} · ${p.ageLabel}, ${p.age} · ${p.origin}`;
-    const story = document.createElement("p"); story.textContent = p.story;
-    const greet = document.createElement("p"); greet.className = "say"; greet.textContent = `“${greeting(p)}”`;
-    const rum = document.createElement("p"); rum.className = "rumor"; rum.textContent = `“${rumorFor(tradeWith)}”`;
-    card.append(nm, meta, story, greet, rum);
-    if (tradeWith.home) { const lore = document.createElement("p"); lore.className = "lore"; lore.textContent = tradeWith.home.lore; card.appendChild(lore); }
-    list.appendChild(card);
-  }
-  const hd = document.createElement("div"); hd.className = "sect"; hd.textContent = "Offers"; list.appendChild(hd);
-  for (const [give, [gid, gn]] of tradeWith.offers || []) {
-    const ok = give.every(([id, n]) => countItem(id) >= n);
-    list.appendChild(recRow(gid, gn, give, ok, "", "for", () => {
-      if (!give.every(([id, n]) => countItem(id) >= n)) return;
-      if (!canAdd(gid, gn)) { toast("Your pack is full", true); return; }
-      for (const [id, n] of give) removeItem(id, n);
-      addItem(gid, gn); sound("craft");
-    }));
   }
 }
 function craft(r) {
   if (!r.ing.every(([id, n]) => countItem(id) >= n)) return;
   if (r.st && !stations[r.st]) return;
-  if (!canAdd(r.out, r.n)) { toast("Your pack is full", true); return; }
+  if (!canAddAll([[r.out, r.n], ...(r.extra || [])])) { toast("Your pack is full", true); return; }
   for (const [id, n] of r.ing) removeItem(id, n);
-  addItem(r.out, r.n); sound("craft");
+  addItem(r.out, r.n); for (const [id, n] of r.extra || []) addItem(id, n); sound("craft");
 }
 (function buildPalette() {
   const pal = $("palette");
@@ -1589,16 +1744,16 @@ function craft(r) {
     pal.appendChild(s);
   }
 })();
-function openInv(trader) {
-  if (invOpen || dead) return;
-  tradeWith = trader || null; invOpen = true; keys.clear(); mining = false;
+function openInv(trader, box) {
+  if (invOpen || dead || signOpen) return;
+  tradeWith = trader || null; boxOpen = box || null; dlgTab = null; invOpen = true; keys.clear(); mining = false;
   stations = { bench: nearBlock(BL.BENCH), kiln: nearBlock(BL.KILN) };
   $("inv").hidden = false; $("recipes").scrollTop = 0; renderInv();
   if (locked) document.exitPointerLock();
 }
 function closeInv(noLock) {
   if (!invOpen) return;
-  invOpen = false; tradeWith = null; $("inv").hidden = true;
+  invOpen = false; tradeWith = null; boxOpen = null; $("inv").hidden = true;
   if (cursor) { addItem(cursor.id, cursor.n, true); cursor = null; renderCursor(); }
   if (!noLock && !TOUCH && !dragLook && playing) requestLock();
 }
@@ -1606,6 +1761,8 @@ $("invClose").addEventListener("click", () => closeInv());
 $("inv").addEventListener("mousedown", e => { if (e.target.id === "inv") closeInv(); });
 $("tabCraft").addEventListener("click", () => { viewTab = "craft"; renderInv(); });
 $("tabJournal").addEventListener("click", () => { viewTab = "journal"; renderInv(); });
+$("tabQuests").addEventListener("click", () => { viewTab = "quests"; renderInv(); });
+$("tabComps").addEventListener("click", () => { viewTab = "comps"; renderInv(); });
 
 // ================= mobs =================
 const mobs = [], mobGeo = new THREE.BoxGeometry(1, 1, 1), RED = new THREE.Color(0xff3020);
@@ -1802,9 +1959,9 @@ function buildModel(m) {
     part(m, 0x30363c, 0.06, 0.14, 0.04, 0.1, 0.86, 0.42); part(m, 0x30363c, 0.06, 0.14, 0.04, -0.1, 0.86, 0.42);
     eyes(m, 0x7fd8ff, 0.06, 0.08, 0.7, 0.615, true);
     m.segs = [part(m, 0xe8eef2, 0.08, 0.08, 0.36, 0, 0.6, -0.54)]; part(m, 0x30363c, 0.09, 0.09, 0.09, 0, 0.6, -0.74);
-  } else if (t === "settler") {
+  } else if (t === "settler" || t === "wanderer") {
     const r = mulberry32(m.person ? m.person.seed : 7), pick = a => a[Math.floor(r() * a.length)];
-    const vt = m.home ? m.home.type : "meadow", robe = pick(ROBES[vt]), skin = pick([0xd9a679, 0xa86f48, 0x7a4a2c, 0xe8c09a, 0xc08a5c]);
+    const vt = t === "wanderer" ? "wander" : m.home ? m.home.type : "meadow", robe = pick(ROBES[vt]), skin = pick([0xd9a679, 0xa86f48, 0x7a4a2c, 0xe8c09a, 0xc08a5c]);
     const dark = new THREE.Color(robe).multiplyScalar(0.6).getHex();
     for (const x of [0.12, -0.12]) m.legs.push(part(m, 0x3a2e26, 0.17, 0.55, 0.17, x, 0.55, 0, { pivot: true }));
     part(m, robe, 0.52, 0.82, 0.32, 0, 0.96, 0);
@@ -1816,6 +1973,7 @@ function buildModel(m) {
     else if (vt === "tundra") { part(m, 0xeae4d8, 0.5, 0.14, 0.5, 0, 1.83, 0); part(m, 0xeae4d8, 0.5, 0.42, 0.08, 0, 1.6, -0.23); part(m, 0xeae4d8, 0.58, 0.1, 0.38, 0, 1.33, 0); }
     else if (vt === "marsh") { part(m, 0xd2b86a, 0.84, 0.05, 0.84, 0, 1.82, 0); part(m, 0xc0a458, 0.36, 0.14, 0.36, 0, 1.9, 0); }
     else if (vt === "woodland") { part(m, dark, 0.48, 0.12, 0.48, 0, 1.84, 0); part(m, 0xd04a3a, 0.04, 0.2, 0.04, 0.2, 1.96, 0.1); }
+    else if (vt === "wander") { part(m, dark, 0.5, 0.18, 0.5, 0, 1.83, 0); part(m, dark, 0.5, 0.44, 0.08, 0, 1.6, -0.23); part(m, dark, 0.08, 0.4, 0.4, 0.24, 1.6, 0); part(m, dark, 0.08, 0.4, 0.4, -0.24, 1.6, 0); }
     else { part(m, dark, 0.58, 0.06, 0.58, 0, 1.82, 0); part(m, dark, 0.36, 0.18, 0.36, 0, 1.94, 0); }
     const prof = m.person ? m.person.prof : "farmer";
     if (prof === "smith") part(m, 0x2e2e30, 0.4, 0.55, 0.03, 0, 0.92, 0.175);
@@ -1823,6 +1981,7 @@ function buildModel(m) {
     else if (prof === "herbalist") part(m, 0x6a9a4a, 0.56, 0.1, 0.36, 0, 1.12, 0);
     else if (prof === "collector") part(m, 0x5a3a6a, 0.16, 0.22, 0.12, 0.3, 0.86, 0.05);
     else if (prof === "lamplighter") part(m, 0xffd27a, 0.1, 0.12, 0.1, 0.36, 1.0, 0.12, { glow: true });
+    else if (prof === "wanderer") { part(m, 0x8a6a3a, 0.4, 0.5, 0.22, 0, 1.0, -0.28); part(m, 0xb04a3a, 0.46, 0.14, 0.2, 0, 1.32, -0.3); part(m, 0x6b4420, 0.06, 1.7, 0.06, 0.52, 0.85, 0.18); }
     else part(m, 0xa8844a, 0.2, 0.16, 0.16, -0.36, 0.92, 0.1);
     m.arms = [part(m, robe, 0.15, 0.6, 0.15, 0.34, 1.34, 0, { pivot: true }), part(m, robe, 0.15, 0.6, 0.15, -0.34, 1.34, 0, { pivot: true })];
   } else if (t === "gloomling") {
@@ -1864,6 +2023,8 @@ function spawnMob(type, x, y, z, extra) {
 function removeMob(m) {
   if (m.doorOpen) { setDoor(m.doorOpen[0], m.doorOpen[1], m.doorOpen[2], false); m.doorOpen = null; }
   if (m.home && m.slot !== undefined) m.home.present[m.slot] = false;
+  if (m.comp && m.comp.mob === m) m.comp.mob = null;
+  if (m.worker && m.worker.mob === m) m.worker.mob = null;
   if (m === tradeWith) closeInv(true);
   scene.remove(m.g); for (const mt of m.mats) mt.dispose();
   const i = mobs.indexOf(m); if (i >= 0) mobs.splice(i, 1);
@@ -1876,7 +2037,7 @@ function killMob(m, byPlayer) {
   removeMob(m); sound("pop");
 }
 function hitMob(m, dmg) {
-  m.hp -= dmg; m.hurtT = 0.3;
+  m.hp -= dmg; m.hurtT = 0.3; m.wary = 8;
   const dx = m.p.x - player.p.x, dz = m.p.z - player.p.z, L = Math.hypot(dx, dz) || 1;
   m.v.x = dx / L * 4.5; m.v.z = dz / L * 4.5; if (!m.def.fly) m.v.y = 4.5;
   if (m.def.neutral) m.angry = 25; else if (!m.def.hostile) m.flee = 4;
@@ -2008,16 +2169,24 @@ function updateMobs(dt, light) {
     const m = mobs[i], def = m.def;
     const dx = pp.x - m.p.x, dz = pp.z - m.p.z, dy = pp.y - m.p.y, dist = Math.hypot(dx, dz);
     if (dist > 84) { removeMob(m); continue; }
-    if (def.nocturnal && light > 0.7 && Math.random() < dt * 0.12) { killMob(m, false); continue; }
+    if (def.nocturnal && !m.comp && light > 0.7 && Math.random() < dt * 0.12) { killMob(m, false); continue; }
+    if (m.type === "wanderer" && !m.comp && !m.worker) { m.life = (m.life === undefined ? 400 : m.life) - dt; if ((m.life < 0 || light < 0.35) && dist > 24) { removeMob(m); continue; } }
     const ch = chunks.get(ck(Math.floor(m.p.x / CX), Math.floor(m.p.z / CZ)));
     if (!ch || !ch.built) continue;
     if (dist < 16 && Math.abs(dy) < 12) discover(m.type);
-    m.hurtT -= dt; m.atkT -= dt; m.flee -= dt; m.think -= dt; m.angry -= dt; m.repath = (m.repath || 0) - dt;
+    m.hurtT -= dt; m.atkT -= dt; m.flee -= dt; m.think -= dt; m.angry -= dt; m.repath = (m.repath || 0) - dt; m.wary = (m.wary || 0) - dt;
     let speed = def.speed, chase = false;
-    const aggro = def.hostile || (def.neutral && m.angry > 0);
+    const aggro = !m.comp && (def.hostile || (def.neutral && m.angry > 0));
     const inLiq = liquidAt(m.p.x, m.p.y + 0.3, m.p.z), wet = !def.fly && inLiq === BL.WATER;
-    if (def.shy && dist < 9 && m.flee < 0.5) m.flee = 2;
+    const lured = !m.comp && !!def.tame && held() === def.tame.food && m.angry <= 0 && m.wary <= 0 && !dead && dist < 11;
+    if (def.shy && !m.comp && !lured && dist < 9 && m.flee < 0.5) m.flee = 2;
     if (m === tradeWith) { m.dir.set(0, 0); m.path = null; }
+    else if (m.comp) { speed = compBrain(m, dt, dist, dx, dz, wet, speed); }
+    else if (lured) {
+      m.flee = 0; m.path = null; speed *= 0.75;
+      if (def.fly) m.homeY = pp.y + 1.2;
+      if (dist > 1.9) { m.dir.set(dx / (dist || 1), dz / (dist || 1)); if (!def.fly && !wet) safeDir(m); } else m.dir.set(0, 0);
+    }
     else if (aggro && dist < 18 && Math.abs(dy) < 10 && !dead) {
       chase = true;
       if (def.fly) m.dir.set(dx / (dist || 1), dz / (dist || 1));
@@ -2033,9 +2202,10 @@ function updateMobs(dt, light) {
     }
     else if (m.flee > 0) { m.path = null; m.dir.set(-dx / (dist || 1), -dz / (dist || 1)); if (!def.shy) speed *= 1.6; if (!def.fly) safeDir(m); }
     else if (m.homeH) settlerBrain(m);
-    if (m.homeH && m !== tradeWith) settlerDoors(m);
+    if ((m.homeH || (m.comp && m.comp.kind === "person")) && m !== tradeWith) settlerDoors(m);
     else {
       if (m.think <= 0) { m.think = 2 + Math.random() * 4; if (Math.random() < (def.bird ? 0 : 0.45)) m.dir.set(0, 0); else { const a = Math.random() * 6.28; m.dir.set(Math.cos(a), Math.sin(a)); } }
+      if (m.leash) { const lx = m.leash[0] - m.p.x, lz = m.leash[2] - m.p.z, ld = Math.hypot(lx, lz); if (ld > 6) m.dir.set(lx / ld, lz / ld); }
       if (!def.fly && !safeDir(m)) m.think = Math.min(m.think, 0.4);
     }
     if (chase && dist < def.w + 0.55) m.dir.multiplyScalar(0.1);
@@ -2071,20 +2241,23 @@ function updateMobs(dt, light) {
         if (m.stuck > 2) { const a = Math.random() * 6.28; m.dir.set(Math.cos(a), Math.sin(a)); m.stuck = 0; m.stage = "out"; }
       } else m.stuck = 0;
     }
-    if (!def.fireproof && inLiq === BL.LAVA) { m.lavaT -= dt; if (m.lavaT <= 0) { m.lavaT = 0.5; m.hp -= 2; m.hurtT = 0.3; if (m.hp <= 0) { killMob(m, false); continue; } } }
+    if (m.comp && inLiq === BL.LAVA) { const sp = nearSpot(2, m.h > 1); tpTo(m, sp[0], sp[1], sp[2]); }
+    else if (!def.fireproof && inLiq === BL.LAVA) { m.lavaT -= dt; if (m.lavaT <= 0) { m.lavaT = 0.5; m.hp -= 2; m.hurtT = 0.3; if (m.hp <= 0) { killMob(m, false); continue; } } }
     if (m.p.y < -10) { removeMob(m); continue; }
     if (aggro && m.atkT <= 0 && dist < def.w + 0.95 && dy > -def.h && dy < 1.2) { m.atkT = 1.1; hurtPlayer(def.dmg, m.p, `${def.n} got you`); }
     // visuals
     const mv = Math.hypot(m.v.x, m.v.z);
     if (mv > 0.3) m.yaw = Math.atan2(m.v.x, m.v.z);
     if (chase || m === tradeWith) m.yaw = Math.atan2(dx, dz);
+    if (m.fighting && m.faceYaw !== undefined) m.yaw = m.faceYaw;
     let dyaw = m.yaw - m.g.rotation.y; while (dyaw > Math.PI) dyaw -= Math.PI * 2; while (dyaw < -Math.PI) dyaw += Math.PI * 2;
     m.g.rotation.y += dyaw * Math.min(1, dt * 8);
     m.phase += dt * (2 + mv * 4);
     m.g.position.copy(m.p);
+    if (m.mark) { m.mark.position.y = m.h + 0.35 + Math.sin(gameTime * 3 + m.phase) * 0.06; m.mark.rotation.y += dt * 2; }
     if (m.yawLegs) m.legs.forEach((l, j) => { l.rotation.y = Math.sin(m.phase * 2 + j) * 0.4 * Math.min(1, mv); });
     else m.legs.forEach((l, j) => { l.rotation.x = Math.sin(m.phase + j * Math.PI) * 0.7 * Math.min(1, mv / 2); });
-    if (m.arms) m.arms.forEach((a, j) => { a.rotation.x = chase ? -1.35 + Math.sin(m.phase * 1.3 + j) * 0.15 : Math.sin(m.phase + j * Math.PI) * 0.4; });
+    if (m.arms) m.arms.forEach((a, j) => { a.rotation.x = (chase || m.fighting) ? -1.35 + Math.sin(m.phase * 1.3 + j) * 0.15 : Math.sin(m.phase + j * Math.PI) * 0.4; });
     if (m.shell) { m.shell.rotation.y += dt * 2.3; m.shell.rotation.x += dt * 1.4; m.g.position.y += Math.sin(gameTime * 3 + m.phase) * 0.05; }
     if (m.wings) m.wings.forEach((w, j) => { w.rotation.z = (j ? -1 : 1) * Math.sin(gameTime * (def.nocturnal ? 9 : 18) + m.phase) * 0.7; });
     if (m.segs) m.segs.forEach((sg, j) => { sg.rotation.y = Math.sin(m.phase * 2 + j * 1.3) * 0.3 * Math.min(1, mv + 0.2); });
@@ -2109,7 +2282,7 @@ function villageTick() {
     if (d > 110) v.announced = false;
     if (d > 70) continue;
     v.homes.forEach((H, i) => {
-      if (v.present[i] || gameTime < v.cool[i] || !chunkBuilt(H.door[0], H.door[1])) return;
+      if (v.present[i] || gameTime < v.cool[i] || personBusy(v.people[i]) || !chunkBuilt(H.door[0], H.door[1])) return;
       const y = Math.max(H.y0, heightAt(H.door[0], H.door[1]));
       spawnMob("settler", H.door[0] + 0.5, y + 0.01, H.door[1] + 0.5, { person: v.people[i], home: v, homeH: H, slot: i });
       v.present[i] = true;
@@ -2118,9 +2291,10 @@ function villageTick() {
 }
 function trySpawn(light) {
   const pp = player.p, rnd = Math.random;
-  const cnt = cat => mobs.reduce((n, m) => n + (m.def.cat === cat ? 1 : 0), 0);
+  const cnt = cat => mobs.reduce((n, m) => n + (m.def.cat === cat && !m.comp ? 1 : 0), 0);
   const group = (t, X, Y, Z) => { spawnMob(t, X, Y, Z); if (rnd() < 0.5) spawnMob(t, X + 1.2, Y + 0.2, Z + 0.3); };
   if (DIM === 0) {
+    if (gameTime > wandT && light > 0.55 && !mobs.some(m => m.type === "wanderer" && !m.comp && !m.worker)) { wandT = gameTime + 150 + Math.random() * 240; spawnWanderer(); }
     if (pp.y < heightAt(Math.floor(pp.x), Math.floor(pp.z)) - 8 && cnt("cave") < 4) {
       const a = rnd() * 6.28, r = 8 + rnd() * 12, x = Math.floor(pp.x + Math.cos(a) * r), z = Math.floor(pp.z + Math.sin(a) * r);
       if (chunkBuilt(x, z)) for (let y = Math.max(2, Math.floor(pp.y) - 6); y <= pp.y + 6; y++) {
@@ -2179,6 +2353,715 @@ function trySpawn(light) {
   }
 }
 
+// ================= storage, signs, companions, hiring & quests =================
+const nid = () => Math.floor(Math.random() * 1e9);
+const MAX_COMPS = 6, MAX_QUESTS = 6;
+const containers = new Map(), signs = new Map(), signObjs = new Map();
+const comps = [], workers = [], quests = [];
+let boxOpen = null, signOpen = null, dlgTab = null;
+const ckey = (x, y, z, d = DIM) => d + ":" + x + "," + y + "," + z;
+const unkey = k => { const [d, r] = k.split(":"); const [x, y, z] = r.split(",").map(Number); return [+d, x, y, z]; };
+const boxSize = b => (b && B[b] && B[b].box) || 0;
+const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pickOf = a => a[Math.floor(Math.random() * a.length)];
+
+// ---- storage boxes ----
+function boxAt(x, y, z) {
+  const n = boxSize(getBlock(x, y, z)); if (!n) return null;
+  const k = ckey(x, y, z); let c = containers.get(k);
+  if (!c) { c = { slots: new Array(n).fill(null) }; containers.set(k, c); }
+  return c;
+}
+const boxEmpty = c => c.slots.every(s => !s);
+function addToSlots(slots, id, n) {
+  const m = stackMax(id);
+  for (let i = 0; i < slots.length && n; i++) { const s = slots[i]; if (s && s.id === id && s.n < m) { const k = Math.min(n, m - s.n); s.n += k; n -= k; } }
+  for (let i = 0; i < slots.length && n; i++) if (!slots[i]) { const k = Math.min(n, m); slots[i] = { id, n: k }; n -= k; }
+  return n;
+}
+const countSlots = (slots, id) => slots.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0);
+function takeSlots(slots, id, n) { for (let i = slots.length - 1; i >= 0 && n; i--) { const s = slots[i]; if (s && s.id === id) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!s.n) slots[i] = null; } } }
+function canAddAll(list) { const sim = inv.map(s => s && { id: s.id, n: s.n }); return list.every(([id, n]) => addToSlots(sim, id, n) === 0); }
+function quickMove(from, i, to) {
+  const s = from[i]; if (!s) return;
+  const left = to === inv ? addItem(s.id, s.n, true) : addToSlots(to, s.id, s.n);
+  if (left < s.n) { if (left) s.n = left; else from[i] = null; }
+  invChanged(); renderCursor();
+}
+function renderBox() {
+  const list = $("recipes"); $("palette").hidden = true; $("stations").hidden = true; list.hidden = false; list.innerHTML = "";
+  const slots = boxOpen.slots;
+  $("craftTitle").textContent = slots.length > 27 ? "Stonebound Box" : "Storage Box";
+  const bar = document.createElement("div"); bar.className = "cbtns";
+  const b1 = document.createElement("button"); b1.type = "button"; b1.className = "minibtn"; b1.textContent = "Stash matching";
+  b1.addEventListener("click", () => { for (let i = 0; i < 36; i++) if (inv[i] && countSlots(slots, inv[i].id) > 0) quickMove(inv, i, slots); });
+  const b2 = document.createElement("button"); b2.type = "button"; b2.className = "minibtn alt"; b2.textContent = "Take all";
+  b2.addEventListener("click", () => { for (let i = 0; i < slots.length; i++) quickMove(slots, i, inv); });
+  bar.append(b1, b2); list.appendChild(bar);
+  const grid = document.createElement("div"); grid.className = "grid9"; grid.style.marginTop = "8px";
+  slots.forEach((st, i) => {
+    const s = makeSlot(null); paintSlot(s, st);
+    s.addEventListener("click", e => { if (e.shiftKey) quickMove(slots, i, inv); else slotClickArr(slots, i, false); });
+    s.addEventListener("contextmenu", e => { e.preventDefault(); slotClickArr(slots, i, true); });
+    grid.appendChild(s);
+  });
+  list.appendChild(grid);
+  const n = document.createElement("p"); n.className = "note"; n.style.marginTop = "8px";
+  n.textContent = "Shift-click moves a stack across. Hired gatherers deliver hauls to the nearest box, and can pay themselves from it with standing orders.";
+  list.appendChild(n);
+}
+
+// ---- signs ----
+function boxMesh(T, x, y, z, box, tl, ls, lb) {
+  const [x0, y0, z0, x1, y1, z1] = box;
+  for (let f = 0; f < 6; f++) {
+    const F = FACES[f], base = T.p.length / 3;
+    for (let k = 0; k < 4; k++) { const C = F.c[k]; T.p.push(x + (C[0] ? x1 : x0), y + (C[1] ? y1 : y0), z + (C[2] ? z1 : z0)); T.u.push((tl + 0.002 + C[3] * 0.996) / NT, C[4]); T.s.push(F.s); T.l.push(ls, lb); }
+    T.i.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+  }
+}
+function signMesh(T, x, y, z, def, ls, lb, f) {
+  const tl = def.t[0], S = 1 / 16;
+  boxMesh(T, x, y, z, [7 * S, 0, 7 * S, 9 * S, 7 * S, 9 * S], tl, ls, lb);
+  boxMesh(T, x, y, z, f[0] ? [7 * S, 7 * S, 1 * S, 9 * S, 15 * S, 15 * S] : [1 * S, 7 * S, 7 * S, 15 * S, 15 * S, 9 * S], tl, ls, lb);
+}
+function signTexture(lines) {
+  const c = document.createElement("canvas"); c.width = 224; c.height = 128;
+  const g = c.getContext("2d"); g.fillStyle = "#2a1a0a"; g.font = "bold 24px 'IBM Plex Mono', monospace"; g.textAlign = "center"; g.textBaseline = "middle";
+  lines.forEach((t, i) => g.fillText(t, 112, 18 + i * 31, 210));
+  const tex = new THREE.CanvasTexture(c); tex.minFilter = tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false; return tex;
+}
+function makeSignObj(s, x, y, z) {
+  const grp = new THREE.Group(), tex = signTexture(s.lines), geo = new THREE.PlaneGeometry(0.84, 0.48);
+  const ang = Math.atan2(s.f[0], s.f[1]);
+  for (const side of [1, -1]) {
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    const p = new THREE.Mesh(geo, mat); const off = side * (1 / 16 + 0.006);
+    p.position.set(x + 0.5 + s.f[0] * off, y + 0.6875, z + 0.5 + s.f[1] * off); p.rotation.y = side === 1 ? ang : ang + Math.PI;
+    grp.add(p);
+  }
+  grp.userData.tex = tex; grp.userData.geo = geo; return grp;
+}
+function disposeSign(o) { o.userData.tex.dispose(); o.userData.geo.dispose(); o.children.forEach(c => c.material.dispose()); }
+let signT = 0;
+function syncSigns(dt) {
+  signT -= dt; if (signT > 0) return; signT = 0.4;
+  const pp = player.p, want = new Set();
+  for (const [k, s] of signs) {
+    const [d, x, y, z] = unkey(k); if (d !== DIM || Math.hypot(x - pp.x, z - pp.z) > 28) continue;
+    want.add(k); let o = signObjs.get(k); const txt = s.lines.join("\n");
+    if (!o || o.userData.txt !== txt) { if (o) { scene.remove(o); disposeSign(o); } o = makeSignObj(s, x, y, z); o.userData.txt = txt; signObjs.set(k, o); scene.add(o); }
+    const br = Math.max(0.3, Math.min(1, brightAt(x + 0.5, y + 0.7, z + 0.5)));
+    o.children.forEach(c => c.material.color.setScalar(br));
+  }
+  for (const [k, o] of [...signObjs]) if (!want.has(k)) { scene.remove(o); disposeSign(o); signObjs.delete(k); }
+}
+const signInputs = [0, 1, 2, 3].map(i => $("sg" + i));
+function openSign(key) {
+  const s = signs.get(key); if (!s) return;
+  signOpen = key; keys.clear(); mining = false; useHeld = false;
+  signInputs.forEach((el, i) => { el.value = s.lines[i] || ""; });
+  $("signEd").hidden = false; if (locked) document.exitPointerLock(); setTimeout(() => signInputs[0].focus(), 30);
+}
+function closeSign(save) {
+  if (!signOpen) return;
+  const s = signs.get(signOpen);
+  if (save && s) {
+    s.lines = signInputs.map(el => el.value.slice(0, 14)); dirtySave = true; signT = 0;
+    const [d, x, y, z] = unkey(signOpen); if (d === DIM) { sound("place"); }
+  }
+  signOpen = null; $("signEd").hidden = true;
+  if (!TOUCH && !dragLook && playing) requestLock();
+}
+$("signSave").addEventListener("click", () => closeSign(true));
+$("signCancel").addEventListener("click", () => closeSign(false));
+signInputs.forEach((el, i) => el.addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); closeSign(false); }
+  else if (e.key === "Enter") { e.preventDefault(); if (i < 3) signInputs[i + 1].focus(); else closeSign(true); }
+}));
+function placeSignRecord(key) {
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  signs.set(key, { lines: ["", "", "", ""], f: Math.abs(fx) > Math.abs(fz) ? [-Math.sign(fx), 0] : [0, -Math.sign(fz)] });
+}
+
+// ---- seasons (real calendar) for holiday decor ----
+function seasonNow() {
+  const d = new Date(), m = d.getMonth() + 1, day = d.getDate();
+  if (m === 10 || (m === 11 && day <= 2)) return "Halloween";
+  if (m === 12 || (m === 1 && day <= 6)) return "Winter holidays";
+  if (m === 11) return "Harvest";
+  if (m === 3 || m === 4 || m === 5) return "Spring";
+  if (m === 1 || m === 2) return "Lunar festival";
+  return "Summer";
+}
+
+// ---- taming ----
+const TAMEDEF = {
+  mossback: [I.FEED, 3], hare: [I.FEED, 2], woolhorn: [I.FEED, 3], shellback: [I.FEED, 3],
+  tusker: [I.JERKY, 4], rimecat: [I.JERKY, 5], skink: [I.BAIT, 2], croaker: [I.BAIT, 2], finch: [I.SEED, 2],
+  glimmerstag: [I.STAR, 3], gildhare: [I.STAR, 2], crystalback: [I.STAR, 3], moonmoth: [I.STAR, 2],
+};
+for (const t in TAMEDEF) MOB[t].tame = { food: TAMEDEF[t][0], need: TAMEDEF[t][1] };
+MOB.settler.hire = true;
+MOB.wanderer = { n: "Wanderer", cat: "npc", hp: 20, w: 0.3, h: 1.85, speed: 1.3, hire: true, drops: [], hab: "Roams the overworld by day", note: "Carries news, a request or two, and a strong pair of boots for hire." };
+ROBES.wander = [0x5a4a3a, 0x3a4a5a, 0x6a3a3a, 0x4a5a3a];
+const GIFT = {
+  mossback: [I.FIBER, 1, 3, 240], woolhorn: [I.HIDE, 1, 2, 360], hare: [I.SEED, 1, 3, 200], shellback: [BL.SAND, 2, 4, 300],
+  skink: [I.STICK, 1, 2, 240], croaker: [BL.REEDS, 1, 2, 240], finch: [I.STICK, 1, 3, 220],
+  glimmerstag: [I.ANTLER, 1, 1, 1200], gildhare: [I.PELT, 1, 1, 1500], crystalback: [I.CRYSTAL, 1, 1, 1500], moonmoth: [I.MOONDUST, 1, 1, 900], rimecat: [I.FANG, 1, 1, 1500],
+};
+const PET_NAMES = ["Biscuit", "Clover", "Pebble", "Juniper", "Maple", "Bramble", "Acorn", "Thistle", "Nutmeg", "Sorrel", "Pip", "Ember", "Willow", "Moss", "Dusty", "Saffron", "Tumble", "Fennel"];
+function petName() { const used = new Set(comps.map(c => c.name)); const free = PET_NAMES.filter(n => !used.has(n)); return pickOf(free.length ? free : PET_NAMES) + (free.length ? "" : " II"); }
+function markMob(m, col) {
+  if (m.mark) { m.g.remove(m.mark); }
+  m.mark = part(m, col, 0.14, 0.14, 0.14, 0, m.h + 0.35, 0, { glow: true }); m.markCol = col;
+}
+function desiredMark(m) {
+  const c = m.comp; if (c) return c.kind === "animal" ? 0xff6a8a : c.role === "guard" ? 0x6ab4ff : 0x7ee07a;
+  const w = m.person && m.person.worker; if (w && w.haul && w.haul.length) return 0xffd27a;
+  return 0;
+}
+function markTick() {
+  for (const m of mobs) {
+    const want = desiredMark(m);
+    if (want && want !== m.markCol) markMob(m, want);
+    else if (!want && m.mark) { m.g.remove(m.mark); m.mark = null; m.markCol = 0; }
+  }
+}
+const heartBurst = m => burst(m.p.x, m.p.y + m.h + 0.2, m.p.z, new THREE.Color(0xff5a7a), 8);
+function feedWild(m) {
+  const d = m.def;
+  if (m.angry > 0 || (m.wary || 0) > 0) { toast(`${d.n} is too wary right now`, true); return; }
+  if (mode === "survival") useSlot();
+  m.trust = (m.trust || 0) + 1; heartBurst(m); sound("eat");
+  if (m.trust >= d.tame.need) tameMob(m); else toast(`${d.n} is warming up to you (${m.trust}/${d.tame.need})`);
+}
+function tameMob(m) {
+  if (comps.length >= MAX_COMPS) { toast("You can't look after any more companions. Release one in the Crew tab.", true); m.trust = m.def.tame.need - 1; return; }
+  const g = GIFT[m.type];
+  const c = { id: nid(), kind: "animal", type: m.type, name: petName(), role: "follow", post: null, dim: DIM, mob: m, gift: g ? g[3] * (0.5 + Math.random() * 0.5) : 0 };
+  comps.push(c); m.comp = c; m.angry = 0; m.flee = 0; journal.tamed.add(m.type); dirtySave = true;
+  markMob(m, 0xff6a8a); heartBurst(m);
+  toast(`${c.name} the ${m.def.n} is yours! Right-click with an empty hand to make it stay or follow.`, false, 4200);
+}
+function giveGift(c) {
+  const g = GIFT[c.type]; if (!g) return;
+  if (!canAdd(g[0], g[2])) { c.gift = 30; return; }
+  const n = rint(g[1], g[2]); addItem(g[0], n, true); toast(`${c.name} the ${MOB[c.type].n} brings you ${n} ${ITEM[g[0]].n}`);
+  c.gift = g[3] * (0.8 + Math.random() * 0.4);
+}
+function animalUse(m) {
+  const d = m.def, id = held();
+  if (m.comp) {
+    if (id && d.tame && id === d.tame.food) { toast(`${m.comp.name} enjoys the treat`); heartBurst(m); if (mode === "survival") useSlot(); sound("eat"); return true; }
+    if (!id && m.comp.kind === "animal") { setRole(m.comp, m.comp.role === "follow" ? "stay" : "follow"); return true; }
+    return false;
+  }
+  if (d.tame && id) {
+    if (id === d.tame.food) { feedWild(m); return true; }
+    if (ITEM[id] && ITEM[id].treat) { toast(`${d.n} sniffs it and turns away. Try ${ITEM[d.tame.food].n}.`); return true; }
+  }
+  return false;
+}
+function setRole(c, role) {
+  c.role = role; const m = c.mob;
+  if (role === "follow") c.post = null;
+  else { const p = m ? m.p : player.p; c.post = [p.x, p.y, p.z]; c.dim = DIM; }
+  if (m) { m.path = null; m.wasGo = false; m.dir.set(0, 0); if (m.mark) markMob(m, desiredMark(m)); }
+  toast(role === "follow" ? `${c.name} will follow you` : role === "guard" ? `${c.name} will guard this spot` : `${c.name} will wait here`);
+  dirtySave = true; if (invOpen) renderInv();
+}
+function releaseComp(c) {
+  const i = comps.indexOf(c); if (i >= 0) comps.splice(i, 1);
+  if (c.person) c.person.comp = null;
+  const m = c.mob;
+  if (m) { m.comp = null; if (c.kind === "animal") { m.wary = 6; if (m.mark) { m.g.remove(m.mark); m.mark = null; m.markCol = 0; } } else removeMob(m); }
+  toast(`${c.name} goes their own way`); dirtySave = true; if (invOpen) renderInv();
+}
+function tpTo(m, x, y, z) { m.p.set(x, y, z); m.v.set(0, 0, 0); m.path = null; }
+function nearSpot(r0, tall) {
+  const pp = player.p;
+  for (let t = 0; t < 14; t++) {
+    const a = Math.random() * 6.28, r = r0 + Math.random() * 1.5, x = Math.floor(pp.x + Math.cos(a) * r), z = Math.floor(pp.z + Math.sin(a) * r);
+    if (!chunkBuilt(x, z)) continue;
+    const st = standY(x, z, Math.floor(pp.y), tall !== false, 3, false); if (st && !st.swim) return [x + 0.5, st.f + 0.01, z + 0.5];
+  }
+  return [pp.x, pp.y + 0.05, pp.z];
+}
+const compPower = m => m.comp.kind === "person" ? (m.comp.role === "guard" ? 5 : 4) : (m.def.dmg || 0);
+function findFoe(anchor, R) {
+  let best = null, bd = R;
+  for (const f of mobs) {
+    if (!f.def.hostile || f.comp) continue;
+    const d = Math.hypot(f.p.x - anchor.x, f.p.z - anchor.z);
+    if (d < bd && Math.abs(f.p.y - anchor.y) < 8) { bd = d; best = f; }
+  }
+  return best;
+}
+function compHit(m, foe, dmg) {
+  foe.hp -= dmg; foe.hurtT = 0.3;
+  const dx = foe.p.x - m.p.x, dz = foe.p.z - m.p.z, L = Math.hypot(dx, dz) || 1;
+  foe.v.x = dx / L * 4; foe.v.z = dz / L * 4; if (!foe.def.fly) foe.v.y = 4;
+  sound("hit"); if (foe.hp <= 0) killMob(foe, true);
+}
+// one step of thinking for a tamed animal or hired companion; returns the speed to use
+function compBrain(m, dt, dist, dx, dz, wet, speed) {
+  const c = m.comp, def = m.def, pp = player.p;
+  m.angry = 0; m.flee = 0;
+  const anchor = c.role === "follow" ? pp : { x: c.post[0], y: c.post[1], z: c.post[2] };
+  if (c.role === "follow" && (dist > 26 || (dist > 14 && (m.stuck || 0) > 3))) { const s = nearSpot(2.5, m.h > 1); tpTo(m, s[0], s[1] + (def.fly ? 2 : 0), s[2]); m.stuck = 0; return speed; }
+  if (c.role !== "follow" && Math.hypot(anchor.x - m.p.x, anchor.z - m.p.z) > 30 && chunkBuilt(anchor.x, anchor.z)) { tpTo(m, anchor.x, anchor.y + 0.05, anchor.z); return speed; }
+  if (c.kind === "animal" && GIFT[c.type] && c.role === "follow" && dist < 12) { c.gift -= dt; if (c.gift <= 0) giveGift(c); }
+  const power = compPower(m);
+  if (power > 0 && !wet) {
+    const foe = findFoe(anchor, c.role === "guard" ? 14 : 11);
+    if (foe) {
+      const fdx = foe.p.x - m.p.x, fdz = foe.p.z - m.p.z, fd = Math.hypot(fdx, fdz) || 1;
+      m.fighting = true; m.faceYaw = Math.atan2(fdx, fdz);
+      if (def.fly) m.dir.set(fdx / fd, fdz / fd);
+      else {
+        if (m.repath <= 0) { m.repath = 0.7; if (fd > 2) navTo(m, Math.floor(foe.p.x), Math.floor(foe.p.z), "foe", c.kind === "person", false); else m.path = null; }
+        if (!(m.path && m.pathTag === "foe" && followPath(m))) { m.dir.set(fdx / fd, fdz / fd); safeDir(m); }
+      }
+      if (fd < m.w + foe.w + 0.9 && Math.abs(foe.p.y - m.p.y) < 2 && m.atkT <= 0) { m.atkT = 0.9; compHit(m, foe, power); }
+      return speed * 1.3;
+    }
+  }
+  m.fighting = false; m.faceYaw = undefined;
+  const tx = anchor.x, tz = anchor.z, d2 = Math.hypot(tx - m.p.x, tz - m.p.z);
+  const go = c.role === "follow" ? dist > (m.wasGo ? 3 : 4.8) : d2 > (m.wasGo ? 1.2 : 3.2);
+  if (def.fly) m.homeY = anchor.y + 2.2;
+  if (!go) {
+    if (m.wasGo) { m.dir.set(0, 0); m.path = null; }
+    m.wasGo = false;
+    if (wet) { if ((!m.path || m.pathTag !== "escape") && m.repath <= 0) { m.repath = 1; navEscape(m); } followPath(m); }
+    return speed;
+  }
+  m.wasGo = true;
+  if (def.fly) { const L = d2 || 1; m.dir.set((tx - m.p.x) / L, (tz - m.p.z) / L); }
+  else {
+    if (m.repath <= 0) { m.repath = 0.9 + Math.random() * 0.4; navTo(m, Math.floor(tx), Math.floor(tz), "follow", c.kind === "person", wet); }
+    if (!(m.path && m.pathTag === "follow" && followPath(m))) { const L = d2 || 1; m.dir.set((tx - m.p.x) / L, (tz - m.p.z) / L); if (!wet) safeDir(m); }
+  }
+  return speed * (d2 > 10 ? 1.7 : 1.15);
+}
+function spawnComp(c, x, y, z) {
+  const extra = { comp: c };
+  if (c.kind === "person") { extra.person = c.person; extra.home = c.v || null; extra.slot = undefined; }
+  const m = spawnMob(c.type, x, y + (MOB[c.type].fly ? 2 : 0), z, extra); c.mob = m; return m;
+}
+function compTick() {
+  const pp = player.p;
+  for (const c of comps) {
+    if (c.mob) continue;
+    if (c.role === "follow") { const s = nearSpot(2.5, MOB[c.type].h > 1); spawnComp(c, s[0], s[1], s[2]); }
+    else {
+      if (c.dim !== DIM || Math.hypot(c.post[0] - pp.x, c.post[2] - pp.z) > 64 || !chunkBuilt(c.post[0], c.post[2])) continue;
+      spawnComp(c, c.post[0], c.post[1], c.post[2]);
+    }
+  }
+  for (const w of workers) {
+    if (w.left > 0 || w.mob || w.type !== "wanderer" || DIM !== 0 || mobs.some(m => m.person === w.person)) continue;
+    if (Math.hypot(w.base[0] - pp.x, w.base[2] - pp.z) > 60 || !chunkBuilt(w.base[0], w.base[2])) continue;
+    w.mob = spawnMob("wanderer", w.base[0], w.base[1], w.base[2], { person: w.person, worker: w, leash: w.base });
+  }
+}
+function personBusy(p) { return !!(p.comp || (p.worker && p.worker.left > 0)); }
+
+// ---- hired gatherers ----
+const JOBS = {
+  lumber: { n: "Lumber run", icon: I.WAXE, what: "timber and sticks" },
+  stone: { n: "Quarry run", icon: I.SPICK, what: "cobble, coal and the odd ember shard" },
+  forage: { n: "Foraging trip", icon: I.FIBER, what: "fiber, seeds, flowers and tonic herbs" },
+  hunt: { n: "Hunting trip", icon: I.WSWORD, what: "meat and hides" },
+  dig: { n: "Digging crew", icon: I.WSHOVEL, what: "dirt, sand, mud or snow by biome" },
+};
+const TIERS = { short: { label: "Short", secs: 150, mult: 1 }, long: { label: "Long", secs: 360, mult: 2.8 } };
+const WAGE = { lumber: [2, 5], stone: [3, 7], forage: [1, 3], hunt: [2, 5], dig: [1, 3] };
+const COMP_COST = { follow: [[I.ROAST, 6]], guard: [[I.ROAST, 8], [I.COAL, 4]] };
+const PSKILL = { farmer: { forage: 1.35, hunt: 1.2, dig: 1.15 }, smith: { stone: 1.3 }, mason: { stone: 1.4, dig: 1.25 }, lamplighter: { lumber: 1.15, stone: 1.1 }, herbalist: { forage: 1.5 }, collector: { hunt: 1.15 } };
+const skillMult = (p, job) => p.skill === job ? 1.5 : (PSKILL[p.prof] && PSKILL[p.prof][job]) || 1;
+const wageFor = (job, tier) => [[I.ROAST, WAGE[job][tier === "short" ? 0 : 1]]];
+const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+function payList(list) {
+  if (mode === "creative") return true;
+  if (!list.every(([id, n]) => countItem(id) >= n)) return false;
+  for (const [id, n] of list) removeItem(id, n);
+  return true;
+}
+function rollHaul(job, tier, person, bio) {
+  const T = TIERS[tier], sk = skillMult(person, job), out = [];
+  const R = (a, b) => Math.max(1, Math.round((a + Math.random() * (b - a)) * T.mult * sk));
+  const add = (id, n) => { if (n > 0) out.push([id, n]); };
+  if (job === "lumber") {
+    const log = bio === BIOME.TUNDRA ? BL.PLOG : bio === BIOME.MARSH ? BL.MLOG : bio === BIOME.WOOD && Math.random() < 0.4 ? BL.SLOG : BL.LOG;
+    add(log, R(7, 11)); add(I.STICK, R(2, 4));
+  } else if (job === "stone") {
+    add(BL.COBBLE, R(12, 18)); add(I.COAL, R(1, 3)); if (tier === "long" && Math.random() < 0.3 * sk) add(I.SHARD, 1);
+  } else if (job === "forage") {
+    add(I.FIBER, R(6, 9)); add(I.SEED, R(2, 4)); add(BL.RFLOWER, R(2, 4)); add(BL.YFLOWER, R(2, 4));
+    if (bio === BIOME.MARSH) add(BL.REEDS, R(3, 6)); if (tier === "long" && Math.random() < 0.5) add(I.TONIC, 1);
+  } else if (job === "hunt") {
+    add(I.MEAT, R(4, 6)); add(I.HIDE, R(1, 3));
+  } else if (job === "dig") {
+    if (bio === BIOME.DUNES) { add(BL.SAND, R(20, 28)); add(BL.SANDSTONE, R(4, 8)); }
+    else if (bio === BIOME.TUNDRA) { add(BL.PSNOW, R(14, 20)); add(BL.DIRT, R(8, 12)); }
+    else if (bio === BIOME.MARSH) { add(BL.MUD, R(14, 20)); add(BL.DIRT, R(8, 12)); }
+    else { add(BL.DIRT, R(18, 26)); add(BL.SAND, R(4, 8)); }
+  }
+  if (Math.random() < 0.08) { for (const h of out) h[1] = Math.max(1, Math.floor(h[1] / 2)); return { out, mishap: true }; }
+  return { out, mishap: false };
+}
+function nearestBox(x, z, R) {
+  let best = null, bd = R;
+  for (const k of containers.keys()) { const [d, bx, by, bz] = unkey(k); if (d !== 0) continue; const dd = Math.hypot(bx + 0.5 - x, bz + 0.5 - z); if (dd < bd) { bd = dd; best = k; } }
+  return best;
+}
+function deliver(w) {
+  const c = w.boxKey && containers.get(w.boxKey); if (!c || !w.haul.length) return;
+  const rest = []; for (const [id, n] of w.haul) { const left = addToSlots(c.slots, id, n); if (left) rest.push([id, left]); }
+  w.haul = rest; if (boxOpen === c && invOpen) renderInv(); dirtySave = true;
+}
+function startTrip(w, job, tier, fresh) {
+  w.job = job; w.tier = tier; w.left = TIERS[tier].secs;
+  if (fresh) { w.bio = biomeAt(Math.floor(player.p.x), Math.floor(player.p.z)); const bk = nearestBox(player.p.x, player.p.z, 40); if (bk) w.boxKey = bk; }
+  dirtySave = true;
+}
+function finishTrip(w) {
+  w.left = 0; const r = rollHaul(w.job, w.tier, w.person, w.bio); w.haul = (w.haul || []).concat(r.out);
+  deliver(w);
+  const jn = JOBS[w.job].n.toLowerCase(), stored = !w.haul.length;
+  toast(`${w.person.name} is back from the ${jn}${r.mishap ? ", a little battered" : ""}. ${stored ? "The haul is in your box." : "Haul is waiting for you."}`, false, 3600);
+  if (invOpen) renderInv();
+}
+function tryRepeat(w) {
+  const c = w.boxKey && containers.get(w.boxKey), wage = wageFor(w.job, w.tier)[0];
+  if (!c || w.haul.length || countSlots(c.slots, wage[0]) < wage[1]) return false;
+  takeSlots(c.slots, wage[0], wage[1]); startTrip(w, w.job, w.tier, false);
+  const m = mobs.find(x => x.person === w.person); if (m) removeMob(m);
+  return true;
+}
+let repT = 0;
+function updateWorkers(dt) {
+  for (const w of workers) if (w.left > 0) { w.left -= dt; if (w.left <= 0) finishTrip(w); }
+  repT -= dt; if (repT <= 0) { repT = 6; for (const w of workers) { if (w.left <= 0 && w.repeat && w.job) { if (w.haul.length) deliver(w); tryRepeat(w); } } }
+}
+function sendOut(m, job, tier) {
+  const p = m.person;
+  if (!payList(wageFor(job, tier))) { toast("You can't afford the wages", true); return; }
+  let w = p.worker;
+  if (!w) { w = { id: nid(), type: m.type, person: p, base: [m.p.x, m.p.y, m.p.z], link: m.home && m.slot !== undefined ? { vx: m.home.x, vz: m.home.z, slot: m.slot } : null, job: null, tier: null, left: 0, haul: [], repeat: false, boxKey: null, mob: null, bio: 0 }; workers.push(w); p.worker = w; }
+  startTrip(w, job, tier, true);
+  toast(`${p.name} heads out on a ${JOBS[job].n.toLowerCase()}. Back in about ${fmtTime(w.left)}.`, false, 3200);
+  sound("craft"); removeMob(m);
+}
+function collectHaul(w) {
+  const rest = [];
+  for (const [id, n] of w.haul) { const left = addItem(id, n, true); if (left) rest.push([id, left]); }
+  w.haul = rest; dirtySave = true; sound("craft"); invChanged();
+}
+function dismissWorker(w, m) {
+  const i = workers.indexOf(w); if (i >= 0) workers.splice(i, 1);
+  w.person.worker = null; if (m && w.type === "wanderer") { toast(`${w.person.name} goes their own way`); removeMob(m); }
+  dirtySave = true; if (invOpen) renderInv();
+}
+function hireComp(m, role) {
+  if (comps.length >= MAX_COMPS) { toast("You can't look after any more companions. Release one in the Crew tab.", true); return; }
+  if (!payList(COMP_COST[role])) { toast("You can't afford that", true); return; }
+  const p = m.person;
+  const c = { id: nid(), kind: "person", type: m.type, name: p.name, role: role === "guard" ? "guard" : "follow", post: role === "guard" ? [m.p.x, m.p.y, m.p.z] : null, dim: DIM, person: p, mob: m, v: m.home || null, link: m.home && m.slot !== undefined ? { vx: m.home.x, vz: m.home.z, slot: m.slot } : null };
+  comps.push(c); p.comp = c; m.comp = c; m.homeH = null; m.path = null; markMob(m, desiredMark(m));
+  toast(role === "guard" ? `${p.name} will guard this spot` : `${p.name} joins you`, false, 3000); sound("craft"); dirtySave = true; renderInv();
+}
+
+// ---- wanderers and quests ----
+const WTITLE = { lumber: "Woodcutter", stone: "Prospector", forage: "Forager", hunt: "Hunter", dig: "Digger" };
+const WSTORY = [
+  "{n} has walked every road between here and {o}, and has opinions about all of them.",
+  "{n} sleeps under whatever sky is available and trades news for supper.",
+  "{n} left {o} years ago and has not yet found a reason to stop.",
+  "{n} carries a map that is mostly crossed-out, and a hat that is mostly mended.",
+];
+const FETCH_POOL = [[I.G_PLANKS, 12, 24], [I.G_LOG, 8, 16], [BL.COBBLE, 16, 32], [I.COAL, 6, 12], [I.FIBER, 10, 20], [I.MEAT, 4, 8], [I.ROAST, 3, 6], [I.HIDE, 3, 6], [BL.GLASS, 4, 8], [BL.BRICK, 8, 16], [I.TONIC, 1, 2], [BL.TORCH, 8, 16], [BL.SAND, 16, 32], [I.SEED, 6, 12]];
+const REWARDS = {
+  easy: [[I.ROAST, 3, 6], [BL.TORCH, 8, 14], [I.TONIC, 1, 2], [I.FEED, 3, 5], [I.JERKY, 3, 5], [BL.HEDGE, 4, 8], [BL.FENCE, 8, 12], [BL.BED_M, 2, 3]],
+  mid: [[I.SHARD, 1, 2], [I.ROAST, 6, 10], [I.TONIC, 2, 3], [BL.STORAGE, 1, 1], [I.BAIT, 4, 6], [BL.LANTERN, 2, 3], [BL.RUG_R, 2, 3], [BL.PUMPKIN, 2, 3], [BL.GIFT, 2, 3]],
+  hard: [[I.SHARD, 2, 4], [I.STAR, 2, 3], [BL.VAULT, 1, 1], [I.TONIC, 3, 4], [BL.PLAMP, 3, 4], [BL.XLIGHTS, 6, 10]],
+};
+function rollReward(tier) {
+  const out = [], pool = REWARDS[tier].slice();
+  for (let i = 0; i < 2 && pool.length; i++) { const e = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; out.push([e[0], rint(e[1], e[2])]); }
+  if (tier !== "easy") { const e = pickOf(REWARDS.easy); if (!out.some(o => o[0] === e[0])) out.push([e[0], rint(e[1], e[2])]); }
+  return out;
+}
+function findTarget(x, z) {
+  const gx0 = Math.floor(x / CELL), gz0 = Math.floor(z / CELL), found = [];
+  for (let gz = gz0 - 2; gz <= gz0 + 2; gz++) for (let gx = gx0 - 2; gx <= gx0 + 2; gx++) {
+    const c = cellData(0, gx, gz);
+    if (c.village) found.push({ x: c.village.x, z: c.village.z, name: c.village.name });
+    if (c.mark) found.push({ x: c.mark.x, z: c.mark.z, name: c.mark.kind === "tower" ? "an old watchtower" : "a buried ruin" });
+  }
+  const far = found.map(t => ({ ...t, d: Math.hypot(t.x - x, t.z - z) })).filter(t => t.d > 60 && t.d < 420).sort((a, b) => a.d - b.d);
+  return far.length ? pickOf(far.slice(0, 3)) : null;
+}
+function makeQuest(p, x, z) {
+  const roll = Math.random(), q = { id: nid(), giver: p.name };
+  const fetch = () => {
+    const [it, a, b] = pickOf(FETCH_POOL), n = rint(a, b); q.type = "fetch"; q.item = it; q.n = n;
+    q.title = `Supplies for ${p.name}`; q.desc = `I'm short on supplies. Bring me ${n} ${ITEM[it].n} and I'll see you rewarded.`;
+    q.reward = rollReward(n > 14 || it === I.TONIC ? "mid" : "easy");
+  };
+  if (roll < 0.5) fetch();
+  else if (roll < 0.7) {
+    const mob = Math.random() < 0.7 ? "gloomling" : "grub", n = rint(3, 5); q.type = "hunt"; q.mob = mob; q.n = n; q.start = 0;
+    q.title = `Clear out the ${MOB[mob].n}s`; q.desc = mob === "gloomling" ? `Gloomlings have been creeping near my camp at night. Drive off ${n} of them.` : `Cave Grubs gnaw at the dark under here. Put down ${n} of them.`;
+    q.reward = rollReward("mid");
+  } else if (roll < 0.85) {
+    const mob = pickOf(["mossback", "hare", "woolhorn", "tusker", "shellback", "skink", "croaker", "finch"]); q.type = "tame"; q.mob = mob;
+    q.title = `A ${MOB[mob].n} for company`; q.desc = `I'd love to see a tamed ${MOB[mob].n}. Befriend one with ${ITEM[MOB[mob].tame.food].n}, and I'll make it worth your while.`;
+    q.reward = rollReward("mid");
+  } else {
+    const t = findTarget(x, z);
+    if (!t) fetch();
+    else {
+      q.type = "explore"; q.tx = t.x; q.tz = t.z; q.tname = t.name; q.title = `Find ${t.name}`;
+      q.desc = `Find ${t.name}, about ${Math.round(t.d / 10) * 10} blocks ${dirWord(t.x - x, t.z - z)} of here, and I'll make it worth your while.`;
+      q.reward = rollReward(t.d > 160 ? "hard" : "mid");
+    }
+  }
+  return q;
+}
+function makeWanderer(x, z) {
+  const r = mulberry32(nid()), pick = a => a[Math.floor(r() * a.length)];
+  const skill = pick(Object.keys(WTITLE)), tk = Object.keys(TRAITS), age = 18 + Math.floor(r() * 55);
+  const name = FIRST[Math.floor(r() * FIRST.length)], other = nameFor(Object.keys(NAMES)[Math.floor(r() * 5)], r);
+  const p = { name, prof: "wanderer", title: `Wandering ${WTITLE[skill]}`, skill, age, ageLabel: age < 30 ? "young" : age < 56 ? "in their prime" : "elder", trait: pick(tk), origin: `from ${other}`, story: pick(WSTORY).replace(/\{n\}/g, name).replace(/\{o\}/g, other), trades: [], seed: Math.floor(r() * 1e9) };
+  p.quest = makeQuest(p, x, z); return p;
+}
+let wandT = 15;
+function spawnWanderer() {
+  const pp = player.p;
+  for (let t = 0; t < 6; t++) {
+    const a = Math.random() * 6.28, r = 24 + Math.random() * 16, x = Math.floor(pp.x + Math.cos(a) * r), z = Math.floor(pp.z + Math.sin(a) * r);
+    if (!chunkBuilt(x, z)) continue;
+    let y = CY - 1; while (y > 0 && (getBlock(x, y, z) === 0 || B[getBlock(x, y, z)].pass)) y--;
+    const top = getBlock(x, y, z);
+    if (!solid(top) || top === BL.LEAVES || top === BL.ICE || solid(getBlock(x, y + 1, z)) || solid(getBlock(x, y + 2, z))) continue;
+    const person = makeWanderer(x, z);
+    spawnMob("wanderer", x + 0.5, y + 1.01, z + 0.5, { person, life: 420 + Math.random() * 240 });
+    toast("A wanderer is passing by. They may have work, news or a request.", false, 3000); return;
+  }
+}
+function questStatus(q) {
+  if (q.type === "fetch") { const have = countItem(q.item); return { ready: have >= q.n, text: `${Math.min(have, q.n)}/${q.n} ${ITEM[q.item].n}` }; }
+  if (q.type === "hunt") { const k = (journal.kills[q.mob] || 0) - q.start; return { ready: k >= q.n, text: `${Math.max(0, Math.min(k, q.n))}/${q.n} ${MOB[q.mob].n} defeated` }; }
+  if (q.type === "tame") return { ready: !!q.reached, text: q.reached ? `${MOB[q.mob].n} tamed` : `Tame a ${MOB[q.mob].n}` };
+  return { ready: !!q.reached, text: q.reached ? `Reached ${q.tname}` : `Find ${q.tname}` };
+}
+function questTick() {
+  for (const q of quests) {
+    if (q.type === "tame" && !q.reached && comps.some(c => c.type === q.mob)) q.reached = true;
+    if (q.type === "explore" && !q.reached && DIM === 0 && Math.hypot(player.p.x - q.tx, player.p.z - q.tz) < 24) q.reached = true;
+    const s = questStatus(q);
+    if (s.ready && !q.notified) { q.notified = true; toast(`Quest ready to claim: ${q.title}. Open your pack's Quests tab.`, false, 4200); dirtySave = true; }
+    else if (!s.ready && q.notified && q.type === "fetch") q.notified = false;
+  }
+}
+function acceptQuest(p) {
+  if (!p.quest || p.questTaken) return;
+  if (quests.length >= MAX_QUESTS) { toast("Your quest log is full", true); return; }
+  const q = JSON.parse(JSON.stringify(p.quest)); if (q.type === "hunt") q.start = journal.kills[q.mob] || 0;
+  quests.push(q); p.questTaken = true; dirtySave = true; sound("craft"); toast(`Quest accepted: ${q.title}`); renderInv();
+}
+function claimQuest(q) {
+  const s = questStatus(q); if (!s.ready) return;
+  if (!canAddAll(q.reward)) { toast("Your pack is too full for the reward", true); return; }
+  if (q.type === "fetch") removeItem(q.item, q.n);
+  for (const [id, n] of q.reward) addItem(id, n, true);
+  quests.splice(quests.indexOf(q), 1); dirtySave = true; sound("craft"); toast(`Quest complete: ${q.title}`, false, 3000); invChanged();
+}
+
+// ---- dialog UI: quest / trade / hire ----
+function rowEl(icon, title, sub, chips, label, ok, fn) {
+  const row = document.createElement("div"); row.className = "rec" + (ok ? " ok" : "");
+  row.appendChild(iconEl(icon));
+  const mid = document.createElement("div"); mid.style.minWidth = "0";
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = title; mid.appendChild(nm);
+  if (sub) { const sb = document.createElement("div"); sb.className = "sub"; sb.textContent = sub; mid.appendChild(sb); }
+  if (chips && chips.length) {
+    const ing = document.createElement("div"); ing.className = "ing";
+    for (const [id, n] of chips) { const sp = document.createElement("span"); if (countItem(id) < n && mode !== "creative") sp.className = "miss"; sp.appendChild(iconEl(id, 16)); sp.append(`${n} ${ITEM[id].n}`); ing.appendChild(sp); }
+    mid.appendChild(ing);
+  }
+  row.appendChild(mid);
+  const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.disabled = !ok; b.addEventListener("click", fn); row.appendChild(b);
+  return row;
+}
+const sectEl = (list, t) => { const h = document.createElement("div"); h.className = "sect"; h.textContent = t; list.appendChild(h); };
+const noteEl = (list, t, col) => { const q = document.createElement("p"); q.className = "note"; q.textContent = t; if (col) q.style.color = col; list.appendChild(q); };
+function renderQuestOffer(list, p) {
+  const q = p.quest; sectEl(list, "A request");
+  const card = document.createElement("div"); card.className = "profile";
+  const nm = document.createElement("div"); nm.className = "pn"; nm.textContent = q.title;
+  const d = document.createElement("p"); d.textContent = `“${q.desc}”`;
+  const rw = document.createElement("div"); rw.className = "ing"; rw.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--moss)";
+  rw.append("Reward: "); for (const [id, n] of q.reward) { const sp = document.createElement("span"); sp.style.cssText = "display:inline-flex;align-items:center;gap:3px"; sp.appendChild(iconEl(id, 16)); sp.append(`${n} ${ITEM[id].n}`); rw.appendChild(sp); }
+  card.append(nm, d, rw);
+  const b = document.createElement("button"); b.type = "button"; b.className = "minibtn"; b.textContent = p.questTaken ? "Accepted" : "Accept quest"; b.disabled = !!p.questTaken || quests.length >= MAX_QUESTS;
+  b.addEventListener("click", () => acceptQuest(p)); card.appendChild(b);
+  list.appendChild(card);
+  if (p.questTaken) noteEl(list, "Check your pack's Quests tab. You can claim the reward there when you're done; no need to find me again.");
+}
+function renderHire(list, p) {
+  const m = tradeWith, w = p.worker, c = p.comp;
+  const btn = (label, fn, alt, dis) => { const b = document.createElement("button"); b.type = "button"; b.className = "minibtn" + (alt ? " alt" : ""); b.textContent = label; b.disabled = !!dis; b.addEventListener("click", fn); return b; };
+  if (c) {
+    sectEl(list, c.role === "guard" ? "Guarding this spot" : "Travelling with you");
+    noteEl(list, c.role === "guard" ? "Fights off hostile creatures near their post. They go on duty again whenever you return." : "Follows you, goes through doors, and fights beside you.");
+    const bar = document.createElement("div"); bar.className = "cbtns";
+    bar.append(btn("Follow me", () => setRole(c, "follow"), c.role !== "follow", c.role === "follow"), btn("Guard here", () => setRole(c, "guard"), c.role !== "guard", c.role === "guard"), btn("Dismiss", () => releaseComp(c), true));
+    list.appendChild(bar); return;
+  }
+  if (w) {
+    sectEl(list, "On the payroll");
+    if (w.haul.length) {
+      noteEl(list, "Haul waiting: " + w.haul.map(([id, n]) => `${n} ${ITEM[id].n}`).join(", "), "var(--ochre)");
+      const bar = document.createElement("div"); bar.className = "cbtns"; bar.appendChild(btn("Collect haul", () => collectHaul(w))); list.appendChild(bar);
+    }
+    const bk = w.boxKey && containers.has(w.boxKey);
+    noteEl(list, bk ? "Hauls are delivered to your storage box. With standing orders on, they pay themselves from it in Roast Meat and head out again." : "No storage box is linked yet. Place one near you before sending them out and hauls will be delivered automatically.");
+    const bar2 = document.createElement("div"); bar2.className = "cbtns";
+    bar2.append(btn(w.repeat ? "Standing orders: on" : "Standing orders: off", () => { w.repeat = !w.repeat; dirtySave = true; renderInv(); }, !w.repeat), btn("Let go", () => dismissWorker(w, m), true, w.haul.length > 0));
+    list.appendChild(bar2);
+  } else {
+    sectEl(list, "Hire as a companion");
+    const caps = comps.length >= MAX_COMPS;
+    list.appendChild(rowEl(I.WSWORD, "Follower", "Travels with you and fights beside you.", COMP_COST.follow, "Hire", !caps && (mode === "creative" || COMP_COST.follow.every(([id, n]) => countItem(id) >= n)), () => hireComp(m, "follow")));
+    list.appendChild(rowEl(I.SSWORD, "Guard", "Stands watch over this spot and fights off creatures nearby.", COMP_COST.guard, "Hire", !caps && (mode === "creative" || COMP_COST.guard.every(([id, n]) => countItem(id) >= n)), () => hireComp(m, "guard")));
+  }
+  sectEl(list, w ? "Send out again" : "Hire to gather");
+  const good = Object.keys(JOBS).filter(j => skillMult(p, j) > 1).map(j => `${JOBS[j].n.toLowerCase()} ×${skillMult(p, j)}`);
+  if (good.length) noteEl(list, "Good at: " + good.join(", "));
+  const pp = player.p, bk = nearestBox(pp.x, pp.z, 40);
+  noteEl(list, bk ? "A storage box is within reach, so hauls will be delivered there." : "No storage box within 40 blocks: hauls will wait with the worker.", bk ? "var(--moss)" : "var(--ochre)");
+  for (const job of Object.keys(JOBS)) for (const tier of ["short", "long"]) {
+    const wage = wageFor(job, tier), ok = mode === "creative" || wage.every(([id, n]) => countItem(id) >= n);
+    list.appendChild(rowEl(JOBS[job].icon, `${JOBS[job].n} · ${TIERS[tier].label} (${fmtTime(TIERS[tier].secs)})`, `Brings back ${JOBS[job].what}.`, wage, "Send", ok, () => sendOut(m, job, tier)));
+  }
+}
+function renderTrades() {
+  const list = $("recipes"); $("palette").hidden = true; $("stations").hidden = true; list.hidden = false;
+  const p = tradeWith.person, offers = tradeWith.offers || [];
+  const tabs = []; if (p && p.quest) tabs.push(["quest", "Request"]); if (offers.length) tabs.push(["trade", "Trade"]); if (p && tradeWith.def.hire) tabs.push(["hire", "Hire"]);
+  if (!tabs.some(t => t[0] === dlgTab)) dlgTab = tabs.length ? tabs[0][0] : "trade";
+  $("craftTitle").textContent = "Talk"; list.innerHTML = "";
+  if (p) {
+    const card = document.createElement("div"); card.className = "profile";
+    const nm = document.createElement("div"); nm.className = "pn"; nm.textContent = p.name;
+    const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = `${p.title || PROF[p.prof].n} · ${p.ageLabel}, ${p.age} · ${p.origin}`;
+    const story = document.createElement("p"); story.textContent = p.story;
+    const greet = document.createElement("p"); greet.className = "say"; greet.textContent = `“${greeting(p)}”`;
+    card.append(nm, meta, story, greet);
+    if (tradeWith.home) { const rum = document.createElement("p"); rum.className = "rumor"; rum.textContent = `“${rumorFor(tradeWith)}”`; card.appendChild(rum); }
+    if (tradeWith.home && tradeWith.home.lore) { const lore = document.createElement("p"); lore.className = "lore"; lore.textContent = tradeWith.home.lore; card.appendChild(lore); }
+    list.appendChild(card);
+  }
+  if (tabs.length > 1) {
+    const row = document.createElement("div"); row.className = "tabs";
+    for (const [k, label] of tabs) { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (k === dlgTab) b.className = "on"; b.addEventListener("click", () => { dlgTab = k; renderInv(); }); row.appendChild(b); }
+    list.appendChild(row);
+  }
+  if (dlgTab === "quest") { renderQuestOffer(list, p); return; }
+  if (dlgTab === "hire") { renderHire(list, p); return; }
+  sectEl(list, "Offers");
+  for (const [give, [gid, gn]] of offers) {
+    const ok = give.every(([id, n]) => countItem(id) >= n);
+    list.appendChild(recRow(gid, gn, give, ok, "", "for", () => {
+      if (!give.every(([id, n]) => countItem(id) >= n)) return;
+      if (!canAdd(gid, gn)) { toast("Your pack is full", true); return; }
+      for (const [id, n] of give) removeItem(id, n);
+      addItem(gid, gn); sound("craft");
+    }));
+  }
+}
+function renderQuests() {
+  const list = $("recipes"); list.innerHTML = "";
+  sectEl(list, `${quests.length} of ${MAX_QUESTS} quests in your log`);
+  if (!quests.length) noteEl(list, "No quests yet. Wanderers pass through by day, and some of them have a request.");
+  for (const q of quests) {
+    const s = questStatus(q), row = document.createElement("div"); row.className = "jrow seen";
+    const top = document.createElement("div"); top.className = "jtop";
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = q.title;
+    const tag = document.createElement("span"); tag.className = "tag" + (s.ready ? " rare" : ""); tag.textContent = s.ready ? "ready" : "active";
+    top.append(nm, tag); row.appendChild(top);
+    const d = document.createElement("div"); d.className = "jnote"; d.textContent = q.desc; row.appendChild(d);
+    const pr = document.createElement("div"); pr.className = "jhab"; pr.textContent = `${s.text} · from ${q.giver}`; row.appendChild(pr);
+    const rw = document.createElement("div"); rw.className = "ing"; rw.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--moss)";
+    rw.append("Reward: "); for (const [id, n] of q.reward) { const sp = document.createElement("span"); sp.style.cssText = "display:inline-flex;align-items:center;gap:3px"; sp.appendChild(iconEl(id, 16)); sp.append(`${n} ${ITEM[id].n}`); rw.appendChild(sp); }
+    row.appendChild(rw);
+    const bar = document.createElement("div"); bar.className = "cbtns";
+    const b = document.createElement("button"); b.type = "button"; b.className = "minibtn"; b.textContent = q.type === "fetch" ? "Hand over" : "Claim"; b.disabled = !s.ready; b.addEventListener("click", () => claimQuest(q));
+    const a = document.createElement("button"); a.type = "button"; a.className = "minibtn alt"; a.textContent = "Abandon"; a.addEventListener("click", () => { quests.splice(quests.indexOf(q), 1); dirtySave = true; renderInv(); });
+    bar.append(b, a); row.appendChild(bar); list.appendChild(row);
+  }
+}
+function renderComps() {
+  const list = $("recipes"); list.innerHTML = "";
+  sectEl(list, `${comps.length} of ${MAX_COMPS} companions`);
+  if (!comps.length) noteEl(list, "Tame animals with the right treat, or hire a villager or wanderer as a follower or guard.");
+  for (const c of comps) {
+    const row = document.createElement("div"); row.className = "jrow seen";
+    const top = document.createElement("div"); top.className = "jtop";
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = c.kind === "animal" ? `${c.name} the ${MOB[c.type].n}` : c.name;
+    const tag = document.createElement("span"); tag.className = "tag " + (c.kind === "animal" ? "common" : "npc"); tag.textContent = c.role === "follow" ? "following" : c.role === "guard" ? "guarding" : "waiting";
+    top.append(nm, tag); row.appendChild(top);
+    const bar = document.createElement("div"); bar.className = "cbtns";
+    const mk = (label, fn, alt) => { const b = document.createElement("button"); b.type = "button"; b.className = "minibtn" + (alt ? " alt" : ""); b.textContent = label; b.addEventListener("click", fn); bar.appendChild(b); };
+    if (c.role !== "follow") mk("Follow me", () => setRole(c, "follow"));
+    if (c.role === "follow") mk(c.kind === "animal" ? "Stay here" : "Guard here", () => setRole(c, c.kind === "animal" ? "stay" : "guard"));
+    mk("Release", () => releaseComp(c), true);
+    row.appendChild(bar); list.appendChild(row);
+  }
+}
+
+// ---- saving the extras ----
+function personData(p) { const { worker, comp, ...rest } = p; return rest; }
+function extrasData() {
+  return {
+    boxes: [...containers].map(([k, c]) => [k, c.slots.map(s => s ? [s.id, s.n] : null)]),
+    signs: [...signs].map(([k, s]) => [k, s.lines, s.f]),
+    comps: comps.map(c => ({ kind: c.kind, type: c.type, name: c.name, role: c.role, post: c.post, dim: c.dim, gift: c.gift, link: c.link || null, person: c.kind === "person" && !c.link ? personData(c.person) : null })),
+    workers: workers.map(w => ({ id: w.id, type: w.type, link: w.link, person: w.link ? null : personData(w.person), base: w.base, job: w.job, tier: w.tier, left: w.left, haul: w.haul, repeat: w.repeat, boxKey: w.boxKey, bio: w.bio })),
+    quests, tamed: [...journal.tamed],
+  };
+}
+function villageFor(vx, vz) { const v = cellData(0, Math.floor(vx / CELL), Math.floor(vz / CELL)).village; return v && v.x === vx && v.z === vz ? v : null; }
+function restoreExtras(s) {
+  containers.clear(); signs.clear(); for (const o of signObjs.values()) { scene.remove(o); disposeSign(o); } signObjs.clear();
+  comps.length = 0; workers.length = 0; quests.length = 0; journal.tamed = new Set((s && s.tamed) || []);
+  wandT = 15; boxOpen = null; signOpen = null;
+  if (!s) return;
+  for (const [k, sl] of s.boxes || []) containers.set(k, { slots: sl.map(x => x && ITEM[x[0]] ? { id: x[0], n: x[1] } : null) });
+  for (const [k, lines, f] of s.signs || []) signs.set(k, { lines, f });
+  for (const q of s.quests || []) quests.push(q);
+  for (const d of s.comps || []) {
+    if (!MOB[d.type]) continue;
+    const c = { id: nid(), kind: d.kind, type: d.type, name: d.name, role: d.role, post: d.post, dim: d.dim, gift: d.gift || 0, mob: null, link: d.link || null };
+    if (d.kind === "person") {
+      if (d.link) { const v = villageFor(d.link.vx, d.link.vz); if (!v || !v.people[d.link.slot]) continue; c.person = v.people[d.link.slot]; c.v = v; }
+      else if (d.person) c.person = d.person; else continue;
+      c.person.comp = c;
+    }
+    comps.push(c);
+  }
+  for (const d of s.workers || []) {
+    const w = { id: d.id, type: d.type, link: d.link || null, base: d.base, job: d.job, tier: d.tier, left: d.left || 0, haul: d.haul || [], repeat: !!d.repeat, boxKey: d.boxKey, bio: d.bio || 0, mob: null };
+    if (d.link) { const v = villageFor(d.link.vx, d.link.vz); if (!v || !v.people[d.link.slot]) continue; w.person = v.people[d.link.slot]; }
+    else if (d.person) w.person = d.person; else continue;
+    w.person.worker = w; workers.push(w);
+  }
+}
+
 // ================= particles =================
 const parts = [], partGeo = new THREE.BoxGeometry(0.13, 0.13, 0.13), partMats = new Map();
 function burst(x, y, z, color, n) {
@@ -2201,7 +3084,7 @@ const keys = new Set();
 let playing = false, locked = false, dragLook = false, mining = false, useHeld = false, useT = 0;
 const menu = $("menu");
 addEventListener("keydown", e => {
-  if (!playing) return;
+  if (!playing || signOpen) return;
   if (e.code === "KeyE" || (e.code === "Escape" && invOpen)) { e.preventDefault(); invOpen ? closeInv() : openInv(); return; }
   if (invOpen) return;
   keys.add(e.code);
@@ -2217,7 +3100,7 @@ cv.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("pointerlockchange", () => {
   locked = document.pointerLockElement === cv;
   if (!locked) { mining = false; useHeld = false; }
-  if (!locked && playing && !dragLook && !invOpen && !dead) pause();
+  if (!locked && playing && !dragLook && !invOpen && !dead && !signOpen) pause();
 });
 document.addEventListener("pointerlockerror", () => { dragLook = true; });
 function look(dx, dy, k) { player.yaw -= dx * k; player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch - dy * k)); }
@@ -2285,10 +3168,11 @@ function raycast(maxD) {
   }
   return null;
 }
-function rayMob(maxD) {
+function rayMob(maxD, withComps) {
   camera.getWorldDirection(_dir);
   const o = camera.position; let best = null, bt = maxD;
   for (const m of mobs) {
+    if (m.comp && !withComps) continue;
     const pad = 0.12, mn = [m.p.x - m.w - pad, m.p.y - pad, m.p.z - m.w - pad], mx = [m.p.x + m.w + pad, m.p.y + m.h + pad, m.p.z + m.w + pad];
     let t0 = 0, t1 = bt; const O = [o.x, o.y, o.z], Dv = [_dir.x, _dir.y, _dir.z]; let ok = true;
     for (let a = 0; a < 3; a++) {
@@ -2330,6 +3214,8 @@ function removeDoor(x, y, z, give) {
 function dropFor(b) { const def = B[b]; let d = def.drop === undefined ? b : def.drop; if (typeof d === "function") d = d(); return d; }
 function giveDrop(d) { if (Array.isArray(d)) { toast("You pried open a supply crate"); for (const [id, n] of d) addItem(id, n); } else if (d) addItem(d, 1); }
 function breakBlock(h, drops) {
+  if (boxSize(h.b)) { const k = ckey(h.x, h.y, h.z), c = containers.get(k); if (c && !boxEmpty(c) && mode === "survival") { toast("Empty the box before breaking it", true); return false; } containers.delete(k); }
+  if (B[h.b].sign) signs.delete(ckey(h.x, h.y, h.z));
   burst(h.x + 0.5, h.y + 0.5, h.z + 0.5, blockColor(h.b), 8);
   if (B[h.b].door) { removeDoor(h.x, h.y, h.z, true); sound("dig"); return; }
   setBlock(h.x, h.y, h.z, 0);
@@ -2375,20 +3261,24 @@ function sleep(h) {
   const f = $("night"); f.style.opacity = 1; keys.clear(); mining = false;
   setTimeout(() => {
     dayTime = 0.03;
-    for (const m of [...mobs]) if (m.def.nocturnal) removeMob(m);
+    for (const w of workers) if (w.left > 0) w.left = Math.max(0.01, w.left - 150);
+    for (const m of [...mobs]) if (m.def.nocturnal && !m.comp) removeMob(m);
     player.hp = 20; drawHearts();
     toast("You slept until morning. Spawn point set.", false, 3000);
     setTimeout(() => f.style.opacity = 0, 300); save();
   }, 1100);
 }
 function use() {
-  if (!playing || invOpen) return;
+  if (!playing || invOpen || signOpen) return;
   swingHand();
-  const h = raycast(mode === "creative" ? 6 : 5), mh = rayMob(4);
-  if (mh && mh.m.def.trader && (!h || mh.t < h.t)) { openInv(mh.m); return; }
+  const h = raycast(mode === "creative" ? 6 : 5), mh = rayMob(4, true);
+  if (mh && (mh.m.def.trader || mh.m.def.hire) && (!h || mh.t < h.t)) { openInv(mh.m); return; }
+  if (mh && (!h || mh.t < h.t) && animalUse(mh.m)) return;
   if (h && h.b === BL.RIFT) { riftTravel(); return; }
   if (h && (h.b === BL.BENCH || h.b === BL.KILN)) { openInv(); return; }
   if (h && h.b === BL.BEDROLL) { sleep(h); return; }
+  if (h && boxSize(h.b) && !keys.has("ShiftLeft")) { openInv(null, boxAt(h.x, h.y, h.z)); return; }
+  if (h && B[h.b].sign && !keys.has("ShiftLeft")) { openSign(ckey(h.x, h.y, h.z)); return; }
   if (h && B[h.b].door) { if (!setDoor(h.x, h.y, h.z, !B[h.b].open)) toast("Something is in the doorway"); return; }
   const id = held(), it = id && ITEM[id];
   if (it && it.heal) {
@@ -2420,8 +3310,12 @@ function use() {
     const boxHit = e => x + 1 > e.p.x - e.w && x < e.p.x + e.w && y + 1 > e.p.y && y < e.p.y + e.h && z + 1 > e.p.z - e.w && z < e.p.z + e.w;
     if (boxHit(player) || mobs.some(boxHit)) return;
   }
+  const pkey = ckey(x, y, z);
+  if (boxSize(place)) containers.set(pkey, { slots: new Array(boxSize(place)).fill(null) });
+  if (B[place].sign) placeSignRecord(pkey);
   setBlock(x, y, z, place); sound("place");
   if (mode === "survival") useSlot();
+  if (B[place].sign) openSign(pkey);
 }
 
 // ================= dimensions travel =================
@@ -2494,7 +3388,7 @@ let dirtySave = false;
 function save() {
   try {
     const dd = dims.map(d => { const e = {}; for (const [k, m] of d.edits) e[k] = [...m]; return { edits: e, ret: d.ret }; });
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, seed, mode, dim: DIM, dims: dd, p: player.p.toArray(), yaw: player.yaw, pitch: player.pitch, time: dayTime, fly: player.fly, hp: player.hp, inv: inv.map(s => s ? [s.id, s.n] : null), spawn: spawnPoint, journal: [...journal.seen], kills: journal.kills }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, seed, mode, dim: DIM, dims: dd, p: player.p.toArray(), yaw: player.yaw, pitch: player.pitch, time: dayTime, fly: player.fly, hp: player.hp, inv: inv.map(s => s ? [s.id, s.n] : null), spawn: spawnPoint, journal: [...journal.seen], kills: journal.kills, ...extrasData() }));
     dirtySave = false;
   } catch (_) {}
 }
@@ -2588,8 +3482,8 @@ function frame(now) {
     physics(dt);
     if (!invOpen) handleMining(dt);
     if (useHeld && !invOpen) { useT -= dt; if (useT <= 0) { useT = 0.24; use(); } }
-    updateMobs(dt, light);
-    spawnT -= dt; if (spawnT <= 0) { spawnT = 1.2; trySpawn(light); if (DIM === 0) villageTick(); }
+    updateMobs(dt, light); updateWorkers(dt); syncSigns(dt);
+    spawnT -= dt; if (spawnT <= 0) { spawnT = 1.2; trySpawn(light); if (DIM === 0) villageTick(); compTick(); markTick(); questTick(); }
   }
   updateParts(dt);
   updateChunks(playing ? 8 : 16);
@@ -2652,6 +3546,7 @@ function loadWorld(s, saved) {
   player.hp = saved && typeof saved.hp === "number" ? saved.hp : 20;
   spawnPoint = saved && saved.spawn ? saved.spawn : null;
   journal.seen = new Set((saved && saved.journal) || []); journal.kills = (saved && saved.kills) || {};
+  restoreExtras(saved);
   if (saved && saved.p) {
     player.p.fromArray(saved.p); player.yaw = saved.yaw || 0; player.pitch = saved.pitch || 0; player.fly = mode === "creative" && !!saved.fly;
     if (typeof saved.time === "number") dayTime = saved.time;
