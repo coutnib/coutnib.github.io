@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Closet Computer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fff8f1; --bg-dot: #f6e3d4; --ink: #4a3b47; --ink-soft: #8a7685;
+      --card: #ffffff; --shadow: 0 6px 0 #f0d9c8; --code: #f6ecf2; --accent: #c9658a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #241e2b; --bg-dot: #312939; --ink: #f5e9f0; --ink-soft: #b9a8b5;
+        --card: #2f2737; --shadow: 0 6px 0 #18131d; --code: #241e2b; --accent: #e59ab6;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 40px 16px 64px;
+      background-color: var(--bg);
+      background-image: radial-gradient(var(--bg-dot) 2px, transparent 2px);
+      background-size: 26px 26px;
+      color: var(--ink); font-family: "Nunito", system-ui, sans-serif; line-height: 1.55;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 28px; }
+    h1 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: clamp(2rem, 6vw, 2.6rem); margin: 6px 0; }
+    h2 { font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.25rem; margin: 0 0 10px; }
+    .lead { color: var(--ink-soft); margin: 0; font-size: 1.05rem; }
+    section { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 22px; }
+    ul, ol { margin: 0; padding-left: 1.2em; }
+    li + li { margin-top: 6px; }
+    pre, code { font-family: ui-monospace, Menlo, monospace; font-size: .92em; }
+    pre { background: var(--code); border-radius: 12px; padding: 12px 14px; overflow-x: auto; margin: 8px 0; }
+    code { background: var(--code); border-radius: 6px; padding: 1px 6px; }
+    pre code { background: none; padding: 0; }
+    .note { border-left: 4px solid var(--accent); }
+    a { color: var(--accent); }
+    footer { text-align: center; color: var(--ink-soft); font-size: .9rem; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div style="font-size:52px" aria-hidden="true">👗</div>
+      <h1>Closet Computer</h1>
+      <p class="lead">A digital wardrobe that runs privately on your own computer.</p>
+    </header>
+
+    <section class="note">
+      <h2>Heads up: this one can't run on GitHub Pages</h2>
+      <p style="margin:0">Closet Computer needs a small Python server (background removal, saved photos, your closet database). GitHub Pages only serves static files, so this page is just the front door. Run the app locally using the steps below.</p>
+    </section>
+
+    <section>
+      <h2>What it does</h2>
+      <ul>
+        <li><strong>Upload clothes</strong> from photos; backgrounds are removed on your machine, no API key needed.</li>
+        <li><strong>Sorted and searchable</strong> by category, color and tag, with favorites.</li>
+        <li><strong>Dress me</strong>: flip through rows, lock the ones you like, and shuffle the rest.</li>
+        <li><strong>Lookbook</strong>: save outfits as flat-lay collages.</li>
+        <li><strong>Try it on me</strong>: preview outfits on your own photo with any image model you plug in.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Run it</h2>
+      <p style="margin-top:0">You need Python 3.10–3.13 (<a href="https://www.python.org/downloads/">python.org</a>).</p>
+      <ol>
+        <li>Download or clone this repo and open the <code>closet-computer</code> folder.</li>
+        <li>Mac / Linux: <pre><code>./run.sh</code></pre> Windows: double-click <code>run.bat</code>.</li>
+        <li>The first run installs dependencies and downloads the background-removal model (about 180 MB, once). Then open <a href="http://127.0.0.1:8765">http://127.0.0.1:8765</a>.</li>
+      </ol>
+      <p style="margin-bottom:0">To photograph clothes from your phone on the same Wi-Fi, run <code>./run.sh --lan</code> and open the address it prints. Only do this on a network you trust.</p>
+    </section>
+
+    <section>
+      <h2>Your data stays with you</h2>
+      <p style="margin:0">Everything lives in the <code>data/</code> folder on your computer (it's git-ignored, so it won't be pushed to GitHub). API keys for try-on models are stored there too, or can be set as environment variables.</p>
+    </section>
+
+    <footer>See <code>README.md</code> in this folder for try-on model setup and the plugin guide.</footer>
+  </main>
+</body>
+</html>
