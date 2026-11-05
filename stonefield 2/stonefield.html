@@ -160,6 +160,17 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
 #signEd .card { width: min(92vw, 380px); display: grid; gap: 10px; }
 #signEd input { font-family: var(--mono); font-size: 16px; padding: 8px 10px; background: #0f1412; color: var(--ink); border: 1px solid var(--edge); width: 100%; box-sizing: border-box; user-select: text; -webkit-user-select: text; }
 #signEd input:focus-visible { outline: 2px solid var(--ochre); }
+#mapv { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(8, 11, 10, 0.78); padding: 10px; }
+#mapv[hidden] { display: none; }
+.mapbox { display: grid; gap: 6px; justify-items: stretch; width: min(94vw, calc(100vh - 150px), 640px); }
+.maphead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.maphead h2 { margin: 0; }
+#mapInfo { font-size: 12px; color: var(--ink-dim); flex: 1; min-width: 120px; }
+#mapCv { width: 100%; aspect-ratio: 1; image-rendering: pixelated; border: 3px solid #000; background: #141917; touch-action: none; cursor: grab; }
+#mapBanner { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #1d3550; border: 2px solid #6fb8ff; padding: 6px 10px; font-size: 14px; }
+#mapBanner[hidden] { display: none; }
+.maplegend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--ink-dim); }
+.maplegend i { display: inline-block; width: 9px; height: 9px; border: 1px solid #000; margin: 0 3px 0 0; vertical-align: -1px; }
 </style>
 
 <div id="view"></div>
@@ -186,6 +197,7 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
     <button class="tbtn" id="tBag" type="button">Pack</button>
     <button class="tbtn" id="tMine" type="button">Mine</button>
     <button class="tbtn" id="tUse" type="button">Use</button>
+    <button class="tbtn" id="tMap" type="button">Map</button>
     <button class="tbtn" id="tFly" type="button">Fly</button>
     <button class="tbtn" id="tDown" type="button">Down</button>
     <button class="tbtn" id="tJump" type="button">Jump</button>
@@ -201,6 +213,7 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
       <h3>Hotbar</h3>
       <div class="grid9" id="hotGrid"></div>
       <p class="note" style="margin-top:10px">Click to pick up a stack, click again to drop it. Right-click splits a stack or drops one.</p>
+      <div class="row" style="margin-top:6px"><button class="minibtn alt" id="trashBtn" type="button" title="Pick up a stack, then click here to throw it away. Right-click discards one.">Discard held stack</button><span class="note" style="min-height:0">Right-click: just one · Q discards the held item</span></div>
     </div>
     <div>
       <div class="row" style="justify-content:space-between"><h2 id="craftTitle">Crafting</h2><button class="big alt closebtn" id="invClose" type="button" style="font-size:14px;padding:4px 12px">Close</button></div>
@@ -209,6 +222,16 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
       <div id="recipes"></div>
       <div id="palette" hidden></div>
     </div>
+  </div>
+</div>
+<div id="mapv" hidden>
+  <div class="mapbox">
+    <div class="maphead"><h2>World Map</h2><span id="mapInfo"></span>
+      <div class="cbtns" style="margin:0"><button class="minibtn" id="mapOut" type="button" title="Zoom out">&minus;</button><button class="minibtn" id="mapIn" type="button" title="Zoom in">+</button><button class="minibtn" id="mapCenter" type="button">Centre</button><button class="minibtn alt" id="mapClose" type="button">Close</button></div>
+    </div>
+    <div id="mapBanner" hidden><span id="mapBannerTxt"></span><button class="minibtn alt" id="mapCancel" type="button">Cancel</button></div>
+    <canvas id="mapCv" width="448" height="448"></canvas>
+    <div class="maplegend"><span id="mapScale"></span><span>Drag to pan · wheel or &plusmn; to zoom · M closes</span><span><i style="background:#fff"></i>You <i style="background:#e8b04a"></i>Village <i style="background:#b8bcc4"></i>Ruin <i style="background:#6fb8ff"></i>Guard post <i style="background:#b07a3a"></i>Storage <i style="background:#ffd84a"></i>Quest</span></div>
   </div>
 </div>
 <div id="cursor" hidden></div>
@@ -233,12 +256,16 @@ button:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
       <dt>Space</dt><dd>Jump · swim up</dd>
       <dt>F</dt><dd>Fly (creative mode)</dd>
       <dt>1–9 · wheel</dt><dd>Choose a hotbar slot</dd>
+      <dt>M</dt><dd>World map · assign guard posts</dd>
+      <dt>Q</dt><dd>Discard the held item (Shift+Q: whole stack)</dd>
+      <dt>Riding</dt><dd>Saddle a tame, then right-click it · Space jump or climb · Shift dive · Ctrl boost · right-click to dismount</dd>
     </dl>
     <dl class="keys" id="keysTouch" hidden>
       <dt>Stick · drag</dt><dd>Walk · look around</dd>
       <dt>Mine</dt><dd>Hold to dig or attack</dd>
       <dt>Use</dt><dd>Place · eat · trade · use a station or rift stone</dd>
       <dt>Pack</dt><dd>Inventory and crafting</dd>
+      <dt>Map</dt><dd>World map and guard posts</dd>
     </dl>
     <p class="hint">Punch trees for logs, craft a workbench, then tools. Craft <b>torches</b> from coal and a stick: they light the dark and keep Gloomlings away. Sleep on a <b>bedroll</b> to skip the night. Every biome has its own villages and creatures, and some creatures are rare: your field journal keeps track. Ember ore hides below layer 16; four shards make a <b>Rift Stone</b> to the <b>Cinderdeep</b>.</p>
     <div class="row"><span class="note" style="min-height:0">Mode</span><div class="seg" role="group" aria-label="Game mode"><button type="button" id="mSurv" class="on">Survival</button><button type="button" id="mCrea">Creative</button></div></div>
@@ -463,7 +490,7 @@ const BL = { AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4, LOG: 5, LEAVES: 6, PL
   TORCH: 41, TORCH_W: 42, TORCH_E: 43, TORCH_N: 44, TORCH_S: 45, LANTERN: 46, ADOBE: 47, THATCH: 48, PPLANKS: 49, BEDROLL: 50, HEARTH: 51, PSNOW: 52 };
 const I = { STICK: 100, COAL: 101, SHARD: 102, MEAT: 103, ROAST: 104, FIBER: 105, TONIC: 106, HIDE: 107,
   WPICK: 110, SPICK: 111, EPICK: 112, WSWORD: 113, SSWORD: 114, ESWORD: 115, WAXE: 116, SAXE: 117, WSHOVEL: 118, SSHOVEL: 119,
-  ANTLER: 120, MOONDUST: 121, CRYSTAL: 122, FANG: 123, PELT: 124, SEED: 130, FEED: 131, JERKY: 132, BAIT: 133, STAR: 134, G_PLANKS: 900, G_LOG: 901, G_HLOG: 902, G_LEAF: 903, G_COBBLE: 904, G_RUG: 905 };
+  ANTLER: 120, MOONDUST: 121, CRYSTAL: 122, FANG: 123, PELT: 124, SEED: 130, FEED: 131, JERKY: 132, BAIT: 133, STAR: 134, SADDLE: 135, HARNESS: 136, G_PLANKS: 900, G_LOG: 901, G_HLOG: 902, G_LEAF: 903, G_COBBLE: 904, G_RUG: 905 };
 const B = [];
 const blk = (id, o) => { B[id] = o; };
 const DOWN = [0, -1, 0];
@@ -529,8 +556,8 @@ Object.assign(BL, { STORAGE: 69, VAULT: 70, SIGN: 71, FENCE: 72, POST: 73, BED_R
 blk(BL.STORAGE, { n: "Storage Box", t: ["boxTop", "boxTop", "boxSide"], hard: 1.6, tool: "axe", box: 27 });
 blk(BL.VAULT,   { n: "Stonebound Box", t: ["vaultTop", "vaultTop", "vaultSide"], hard: 3, tool: "pick", box: 54 });
 blk(BL.SIGN,    { n: "Sign", t: "signWood", tr: 1, sign: 1, hard: 0.6, tool: "axe" });
-blk(BL.FENCE,   { n: "Fence Post", t: ["fenceTop", "fenceTop", "fence"], tr: 1, inset: 5 / 16, hard: 1, tool: "axe" });
-blk(BL.POST,    { n: "Stone Post", t: "cobble", tr: 1, inset: 5 / 16, hard: 2, tool: "pick" });
+blk(BL.FENCE,   { n: "Fence", t: ["fenceTop", "fenceTop", "fence"], tr: 1, conn: "fence", hard: 1, tool: "axe" });
+blk(BL.POST,    { n: "Stone Wall", t: "cobble", tr: 1, conn: "wall", hard: 2, tool: "pick" });
 const bedDef = (n, t) => ({ n, t: [t, "dirt", "bedBorder"], tr: 1, pass: 1, low: 0.4, att: DOWN, hard: 0.4, tool: "axe" });
 blk(BL.BED_R, bedDef("Red Flower Bed", "bedRed")); blk(BL.BED_Y, bedDef("Yellow Flower Bed", "bedYellow")); blk(BL.BED_M, bedDef("Wildflower Bed", "bedMix")); blk(BL.BED_P, bedDef("Blossom Bed", "bedBlossom"));
 blk(BL.HEDGE,   { n: "Hedge", t: "hedge", hard: 0.4 });
@@ -568,7 +595,7 @@ ITEM[I.G_LEAF] = { n: "Any Leaves", group: [BL.LEAVES, BL.PLEAVES, BL.SLEAVES, B
 ITEM[I.G_COBBLE] = { n: "Any Cobble", group: [BL.COBBLE, BL.MOSSY] };
 ITEM[I.G_RUG] = { n: "Any Rug", group: [BL.RUG_R, BL.RUG_L, BL.RUG_G, BL.REEDMAT] };
 ITEM[I.SEED] = { n: "Wild Seed" }; ITEM[I.FEED] = { n: "Forage Mix", treat: 1 }; ITEM[I.JERKY] = { n: "Smoked Jerky", treat: 1 };
-ITEM[I.BAIT] = { n: "Critter Bait", treat: 1 }; ITEM[I.STAR] = { n: "Starlight Treat", treat: 1 };
+ITEM[I.BAIT] = { n: "Critter Bait", treat: 1 }; ITEM[I.STAR] = { n: "Starlight Treat", treat: 1 }; ITEM[I.SADDLE] = { n: "Saddle", saddle: 1 }; ITEM[I.HARNESS] = { n: "Flight Harness", saddle: 2 };
 tool(I.WPICK, "Wooden Pick", "pick", 1, 2); tool(I.SPICK, "Stone Pick", "pick", 2, 3); tool(I.EPICK, "Ember Pick", "pick", 3, 4);
 tool(I.WSWORD, "Wooden Sword", "sword", 1, 4); tool(I.SSWORD, "Stone Sword", "sword", 2, 5); tool(I.ESWORD, "Ember Sword", "sword", 3, 8);
 tool(I.WAXE, "Wooden Axe", "axe", 1, 3); tool(I.SAXE, "Stone Axe", "axe", 2, 4);
@@ -589,6 +616,7 @@ const RECIPES = [
   { out: BL.BEDROLL, n: 1, ing: [[I.FIBER, 4], [I.G_PLANKS, 2]], st: null },
   { out: I.FEED, n: 2, ing: [[I.FIBER, 2], [I.SEED, 2]], st: null, tag: "Taming" },
   { out: I.BAIT, n: 3, ing: [[I.FIBER, 2], [I.MEAT, 1]], st: null, tag: "Taming" },
+  { out: BL.FENCE, n: 4, ing: [[I.G_PLANKS, 2], [I.STICK, 2]], st: null, tag: "Decor" },
   { out: I.ROAST, n: 1, ing: [[I.JERKY, 1]], st: null, tag: "Salvage" },
   { out: I.FIBER, n: 1, ing: [[I.BAIT, 2]], st: null, tag: "Salvage" },
   { out: BL.GLOW, n: 1, ing: [[I.STAR, 2]], st: null, tag: "Salvage" },
@@ -612,7 +640,6 @@ const RECIPES = [
   { out: BL.STORAGE, n: 1, ing: [[I.G_PLANKS, 8]], st: "bench" },
   { out: BL.VAULT, n: 1, ing: [[BL.STORAGE, 1], [BL.COBBLE, 8], [I.COAL, 2]], st: "bench" },
   { out: BL.SIGN, n: 2, ing: [[I.G_PLANKS, 2], [I.STICK, 1]], st: "bench", tag: "Decor" },
-  { out: BL.FENCE, n: 4, ing: [[I.G_PLANKS, 3], [I.STICK, 2]], st: "bench", tag: "Decor" },
   { out: BL.POST, n: 4, ing: [[BL.COBBLE, 4]], st: "bench", tag: "Decor" },
   { out: BL.BED_R, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.RFLOWER, 2]], st: "bench", tag: "Decor" },
   { out: BL.BED_Y, n: 1, ing: [[I.G_PLANKS, 1], [BL.DIRT, 2], [BL.YFLOWER, 2]], st: "bench", tag: "Decor" },
@@ -633,6 +660,10 @@ const RECIPES = [
   { out: BL.PLAMP, n: 1, ing: [[I.FIBER, 2], [BL.TORCH, 1], [I.STICK, 1]], st: "bench", tag: "Lunar festival" },
   { out: I.FEED, n: 3, ing: [[BL.HAY, 1]], st: "bench", tag: "Taming" },
   { out: I.STAR, n: 2, ing: [[I.FEED, 2], [BL.GLOW, 1], [I.SHARD, 1]], st: "bench", tag: "Taming" },
+  { out: I.SADDLE, n: 1, ing: [[I.HIDE, 4], [I.FIBER, 2], [I.STICK, 1]], st: "bench", tag: "Taming" },
+  { out: I.HARNESS, n: 1, ing: [[I.SADDLE, 1], [I.SHARD, 2], [I.FIBER, 4]], st: "bench", tag: "Taming" },
+  { out: I.HIDE, n: 2, ing: [[I.SADDLE, 1]], st: null, tag: "Salvage" },
+  { out: I.SADDLE, n: 1, ing: [[I.HARNESS, 1]], st: "bench", extra: [[I.SHARD, 1]], tag: "Salvage" },
   { out: BL.PLANKS, n: 4, ing: [[BL.STORAGE, 1]], st: "bench", tag: "Salvage" },
   { out: BL.STORAGE, n: 1, ing: [[BL.VAULT, 1]], st: "bench", extra: [[BL.COBBLE, 4]], tag: "Salvage" },
   { out: I.STICK, n: 1, ing: [[BL.SIGN, 1]], st: "bench", tag: "Salvage" },
@@ -713,6 +744,8 @@ function spriteFor(id) {
   else if (id === I.JERKY) { for (let i = 0; i < 12; i++) { const o = Math.floor(i * 0.6); P(2 + i, 10 - o, i % 3 ? "#4a1e14" : "#8a4630"); P(2 + i, 11 - o, "#6a2e20"); P(2 + i, 12 - o, "#8a4630"); } }
   else if (id === I.BAIT) { for (const [cx, cy] of [[6, 5], [9, 8], [6, 11]]) for (let y = -1; y <= 1; y++) for (let x = -2; x <= 2; x++) if (Math.abs(x) + Math.abs(y) * 1.6 < 3) P(cx + x, cy + y, (x + y) % 2 ? "#e8dcc4" : "#cdbf9e"); for (const y of [4, 7, 10, 13]) P(12, y, "#8a9a4a"); }
   else if (id === I.STAR) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = Math.abs(x - 7.5), dy = Math.abs(y - 7.5); if (dx * dy < 3 && dx + dy < 8) P(x, y, dx + dy < 2.5 ? "#ffffff" : dx + dy < 4.5 ? "#ffe08a" : "#b88aff"); } }
+  else if (id === I.SADDLE) { for (let y = 4; y < 12; y++) for (let x = 2; x < 14; x++) { const e = ((x - 7.5) ** 2) / 42 + ((y - 8) ** 2) / 14; if (e < 1) P(x, y, y < 6 ? "#6a3c1e" : (x + y) % 4 === 0 ? "#a86a3a" : "#8a5428"); } for (let y = 11; y < 15; y++) { P(7, y, "#d8d8e0"); P(8, y, "#d8d8e0"); } P(7, 14, "#f0c040"); P(8, 14, "#f0c040"); }
+  else if (id === I.HARNESS) { for (let i = 0; i < 14; i++) { const o = Math.floor(i * 0.6); P(1 + i, 3 + o, "#6a3c1e"); P(1 + i, 4 + o, "#8a5428"); P(14 - i, 3 + o, "#6a3c1e"); P(14 - i, 4 + o, "#8a5428"); } for (let y = 6; y < 10; y++) for (let x = 6; x < 10; x++) P(x, y, (x + y) % 2 ? "#9ff8ff" : "#ffffff"); for (let y = 10; y < 14; y++) P(7, y, "#6a3c1e"), P(8, y, "#6a3c1e"); }
   return c;
 }
 const ICONS = new Map();
@@ -1374,6 +1407,12 @@ function buildChunk(ch) {
     const def = B[b];
     if (def.plant) { crossMesh(A, x, y, z, def, skyL(x, y, z) / 15, blkL(x, y, z) / 15); continue; }
     if (def.torch) { torchMesh(A, x, y, z, def, skyL(x, y, z) / 15, blkL(x, y, z) / 15); continue; }
+    if (def.conn) {
+      let ls = skyL(x, y, z), lb = blkL(x, y, z);
+      for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ls = Math.max(ls, skyL(x + ox, y, z + oz)); lb = Math.max(lb, blkL(x + ox, y, z + oz)); }
+      const cn = (dx, dz) => { const nb = get(x + dx, y, z + dz), nd = nb && B[nb]; return !!nd && !!(nd.conn || nd.door || opaque(nb)); };
+      connMesh(A, x, y, z, def, ls / 15, lb / 15, [cn(1, 0), cn(-1, 0), cn(0, 1), cn(0, -1)]); continue;
+    }
     if (def.sign) {
       let ls = skyL(x, y, z), lb = blkL(x, y, z);
       for (const [ox, oz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ls = Math.max(ls, skyL(x + ox, y, z + oz)); lb = Math.max(lb, blkL(x + ox, y, z + oz)); }
@@ -1547,6 +1586,8 @@ function die(why) {
   dead = true; playing = false; mining = false; keys.clear();
   $("deadwhy").textContent = why;
   if (invOpen) closeInv(true);
+  if (mapOpen) closeMap(true);
+  if (riding) dismount(true);
   $("dead").hidden = false;
   if (locked) document.exitPointerLock();
 }
@@ -1699,8 +1740,12 @@ function renderInv() {
   st.innerHTML = "";
   for (const k of ["bench", "kiln"]) { const c = document.createElement("span"); c.className = "chip" + (stations[k] ? " yes" : ""); c.textContent = `${STATION_NAME[k]} ${stations[k] ? "nearby" : "not nearby"}`; st.appendChild(c); }
   list.innerHTML = "";
+  const fbar = document.createElement("div"); fbar.className = "cbtns"; fbar.style.marginTop = "0";
+  for (const cat of ["All", "Basics", "Decor", "Taming", "Biome", "Holiday", "Salvage"]) { const b = document.createElement("button"); b.type = "button"; b.className = "minibtn" + (craftFilter === cat ? "" : " alt"); b.textContent = cat; b.addEventListener("click", () => { craftFilter = cat; renderInv(); }); fbar.appendChild(b); }
+  list.appendChild(fbar);
   let lastSt;
   for (const r of RECIPES) {
+    if (craftFilter !== "All" && recCat(r) !== craftFilter) continue;
     if (r.st !== lastSt) { lastSt = r.st; const h = document.createElement("div"); h.className = "sect"; h.textContent = r.st ? `At a ${STATION_NAME[r.st]}` : "By hand"; list.appendChild(h); }
     const have = r.ing.every(([id, n]) => countItem(id) >= n), stOk = !r.st || stations[r.st];
     const rr = recRow(r.out, r.n, r.ing, have && stOk, stOk ? "" : `needs ${STATION_NAME[r.st]}`, "", () => craft(r));
@@ -1926,6 +1971,22 @@ function buildModel(m) {
     if (cr) for (const [x, z, hh] of [[0, 0, 0.3], [0.2, 0.2, 0.22], [-0.2, -0.15, 0.25], [-0.18, 0.22, 0.18], [0.22, -0.2, 0.2]]) part(m, 0xc8f6ff, 0.12, hh, 0.12, x, 0.64 + hh / 2, z, { glow: true });
     m.yawLegs = true;
     for (const [x, z] of [[0.48, 0.32], [-0.48, 0.32], [0.48, -0.32], [-0.48, -0.32]]) m.legs.push(part(m, 0x8f9a6a, 0.26, 0.08, 0.3, x, 0.18, z));
+  } else if (t === "stormwing" || t === "duskwing") {
+    const owl = t === "duskwing", col = owl ? 0x4a3f6e : 0x7a5a3a, col2 = owl ? 0x8f86b8 : 0xe8dcc0, dark = owl ? 0x2a2444 : 0x4a3422;
+    part(m, col, owl ? 0.42 : 0.32, owl ? 0.44 : 0.3, 0.66, 0, 0.5, 0);
+    part(m, col2, owl ? 0.34 : 0.26, 0.2, 0.5, 0, 0.36, 0.04);
+    part(m, col, owl ? 0.34 : 0.24, owl ? 0.3 : 0.24, 0.26, 0, owl ? 0.74 : 0.7, 0.36);
+    part(m, dark, 0.24, 0.05, 0.4, 0, 0.5, -0.5);
+    part(m, 0xe8b030, 0.06, 0.14, 0.06, 0.09, 0.2, 0.08); part(m, 0xe8b030, 0.06, 0.14, 0.06, -0.09, 0.2, 0.08);
+    if (owl) {
+      part(m, dark, 0.07, 0.12, 0.07, 0.11, 0.94, 0.34); part(m, dark, 0.07, 0.12, 0.07, -0.11, 0.94, 0.34);
+      part(m, 0xffe27a, 0.1, 0.1, 0.02, 0.08, 0.76, 0.5, { glow: true }); part(m, 0xffe27a, 0.1, 0.1, 0.02, -0.08, 0.76, 0.5, { glow: true });
+      part(m, 0xd8a040, 0.05, 0.07, 0.07, 0, 0.7, 0.52);
+    } else {
+      part(m, 0xe8b030, 0.07, 0.08, 0.16, 0, 0.66, 0.54); eyes(m, 0x111111, 0.04, 0.07, 0.74, 0.495);
+      part(m, 0xf4ecd8, 0.2, 0.1, 0.05, 0, 0.78, 0.4);
+    }
+    m.wings = wings(m, owl ? 0x5a4f86 : 0x8a6a46, owl ? [1.5, 0.75] : [1.7, 0.7], 0.6, 0, false);
   } else if (t === "finch") {
     const col = [0x3c74c8, 0xc8433c, 0xd9a33a][Math.floor(Math.random() * 3)];
     part(m, col, 0.24, 0.22, 0.38, 0, 0.16, 0);
@@ -2023,6 +2084,7 @@ function spawnMob(type, x, y, z, extra) {
 function removeMob(m) {
   if (m.doorOpen) { setDoor(m.doorOpen[0], m.doorOpen[1], m.doorOpen[2], false); m.doorOpen = null; }
   if (m.home && m.slot !== undefined) m.home.present[m.slot] = false;
+  if (m === riding) { riding = null; player.v.set(0, 0, 0); }
   if (m.comp && m.comp.mob === m) m.comp.mob = null;
   if (m.worker && m.worker.mob === m) m.worker.mob = null;
   if (m === tradeWith) closeInv(true);
@@ -2181,6 +2243,7 @@ function updateMobs(dt, light) {
     const lured = !m.comp && !!def.tame && held() === def.tame.food && m.angry <= 0 && m.wary <= 0 && !dead && dist < 11;
     if (def.shy && !m.comp && !lured && dist < 9 && m.flee < 0.5) m.flee = 2;
     if (m === tradeWith) { m.dir.set(0, 0); m.path = null; }
+    else if (m === riding) { speed = rideDrive(m); }
     else if (m.comp) { speed = compBrain(m, dt, dist, dx, dz, wet, speed); }
     else if (lured) {
       m.flee = 0; m.path = null; speed *= 0.75;
@@ -2203,7 +2266,7 @@ function updateMobs(dt, light) {
     else if (m.flee > 0) { m.path = null; m.dir.set(-dx / (dist || 1), -dz / (dist || 1)); if (!def.shy) speed *= 1.6; if (!def.fly) safeDir(m); }
     else if (m.homeH) settlerBrain(m);
     if ((m.homeH || (m.comp && m.comp.kind === "person")) && m !== tradeWith) settlerDoors(m);
-    else {
+    else if (m !== riding) {
       if (m.think <= 0) { m.think = 2 + Math.random() * 4; if (Math.random() < (def.bird ? 0 : 0.45)) m.dir.set(0, 0); else { const a = Math.random() * 6.28; m.dir.set(Math.cos(a), Math.sin(a)); } }
       if (m.leash) { const lx = m.leash[0] - m.p.x, lz = m.leash[2] - m.p.z, ld = Math.hypot(lx, lz); if (ld > 6) m.dir.set(lx / ld, lz / ld); }
       if (!def.fly && !safeDir(m)) m.think = Math.min(m.think, 0.4);
@@ -2211,7 +2274,8 @@ function updateMobs(dt, light) {
     if (chase && dist < def.w + 0.55) m.dir.multiplyScalar(0.1);
     const k = Math.min(1, dt * (m.ground || def.fly || wet ? 8 : 2));
     if (m.hurtT < 0.1) { m.v.x += (m.dir.x * speed - m.v.x) * k; m.v.z += (m.dir.y * speed - m.v.z) * k; }
-    if (def.fly) {
+    if (m === riding && def.fly) { m.v.y += (rideIn.up * 7 - m.v.y) * Math.min(1, dt * 5); if (m.p.y > CY - 4 && m.v.y > 0) m.v.y = 0; }
+    else if (def.fly) {
       const ty = chase ? pp.y + 1.1 : (def.bird ? m.homeY : m.p.y) + Math.sin(gameTime * 1.3 + m.phase) * 0.6;
       m.v.y += ((ty - m.p.y) * 2 - m.v.y) * Math.min(1, dt * 3);
     } else if (inLiq) { m.v.y = m.v.y > 2.2 ? m.v.y - 28 * dt : Math.min(m.v.y + 20 * dt, 2.2); }
@@ -2259,7 +2323,7 @@ function updateMobs(dt, light) {
     else m.legs.forEach((l, j) => { l.rotation.x = Math.sin(m.phase + j * Math.PI) * 0.7 * Math.min(1, mv / 2); });
     if (m.arms) m.arms.forEach((a, j) => { a.rotation.x = (chase || m.fighting) ? -1.35 + Math.sin(m.phase * 1.3 + j) * 0.15 : Math.sin(m.phase + j * Math.PI) * 0.4; });
     if (m.shell) { m.shell.rotation.y += dt * 2.3; m.shell.rotation.x += dt * 1.4; m.g.position.y += Math.sin(gameTime * 3 + m.phase) * 0.05; }
-    if (m.wings) m.wings.forEach((w, j) => { w.rotation.z = (j ? -1 : 1) * Math.sin(gameTime * (def.nocturnal ? 9 : 18) + m.phase) * 0.7; });
+    if (m.wings) m.wings.forEach((w, j) => { w.rotation.z = (j ? -1 : 1) * Math.sin(gameTime * (def.flap || (def.nocturnal ? 9 : 18)) + m.phase) * 0.7; });
     if (m.segs) m.segs.forEach((sg, j) => { sg.rotation.y = Math.sin(m.phase * 2 + j * 1.3) * 0.3 * Math.min(1, mv + 0.2); });
     const br = Math.min(1, brightAt(m.p.x, m.p.y + m.h * 0.6, m.p.z));
     for (const mt of m.mats) { if (mt.userData.glow) mt.color.copy(mt.userData.base); else mt.color.copy(mt.userData.base).multiplyScalar(br); if (m.hurtT > 0) mt.color.lerp(RED, 0.6); }
@@ -2312,9 +2376,11 @@ function trySpawn(light) {
     const rare = cnt("rare") < 2;
     if (light < 0.45) {
       if (rare && rnd() < (bio === BIOME.MARSH ? 0.14 : 0.04)) { spawnMob("moonmoth", X, Y + 3 + rnd() * 3, Z); return; }
+      if (rare && rnd() < 0.03 && (bio === BIOME.WOOD || bio === BIOME.MARSH) && !mobs.some(m => m.type === "duskwing" && !m.comp)) { spawnMob("duskwing", X, Y + 9 + rnd() * 4, Z); return; }
       if (cnt("hostile") < 7 && lightAt(x, y + 1, z)[1] < 7 && !nearVillage(x, z, 30) && top !== BL.LEAVES) spawnMob("gloomling", X, Y, Z);
       return;
     }
+    if (rare && rnd() < 0.02 && bio !== BIOME.DUNES && !mobs.some(m => m.type === "stormwing" && !m.comp)) { spawnMob("stormwing", X, Y + 10 + rnd() * 4, Z); return; }
     if (rnd() < 0.2 && bio !== BIOME.DUNES && bio !== BIOME.TUNDRA) { if (cnt("bird") < 6) spawnMob("finch", X, Y + 7 + rnd() * 4, Z); return; }
     if (top === BL.LEAVES || cnt("animal") >= 10) return;
     if (top === BL.SAND) {
@@ -2358,7 +2424,8 @@ const nid = () => Math.floor(Math.random() * 1e9);
 const MAX_COMPS = 6, MAX_QUESTS = 6;
 const containers = new Map(), signs = new Map(), signObjs = new Map();
 const comps = [], workers = [], quests = [];
-let boxOpen = null, signOpen = null, dlgTab = null;
+let boxOpen = null, signOpen = null, dlgTab = null, craftFilter = "All";
+const recCat = r => !r.tag ? "Basics" : (r.tag === "Decor" || r.tag === "Taming" || r.tag === "Salvage") ? r.tag : BIOME_NAME.includes(r.tag) ? "Biome" : "Holiday";
 const ckey = (x, y, z, d = DIM) => d + ":" + x + "," + y + "," + z;
 const unkey = k => { const [d, r] = k.split(":"); const [x, y, z] = r.split(",").map(Number); return [+d, x, y, z]; };
 const boxSize = b => (b && B[b] && B[b].box) || 0;
@@ -2418,6 +2485,17 @@ function boxMesh(T, x, y, z, box, tl, ls, lb) {
     const F = FACES[f], base = T.p.length / 3;
     for (let k = 0; k < 4; k++) { const C = F.c[k]; T.p.push(x + (C[0] ? x1 : x0), y + (C[1] ? y1 : y0), z + (C[2] ? z1 : z0)); T.u.push((tl + 0.002 + C[3] * 0.996) / NT, C[4]); T.s.push(F.s); T.l.push(ls, lb); }
     T.i.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+  }
+}
+function connMesh(T, x, y, z, def, ls, lb, c) {
+  const S = 1 / 16, tl = def.t[2], wall = def.conn === "wall";
+  const a = wall ? 4 * S : 6 * S, b = wall ? 12 * S : 10 * S, w0 = wall ? 5 * S : 7 * S, w1 = wall ? 11 * S : 9 * S;
+  boxMesh(T, x, y, z, [a, 0, a, b, wall ? 1 : 1, b], tl, ls, lb);
+  for (const [y0, y1] of wall ? [[0, 13 * S]] : [[6 * S, 9 * S], [12 * S, 15 * S]]) {
+    if (c[0]) boxMesh(T, x, y, z, [b, y0, w0, 1, y1, w1], tl, ls, lb);
+    if (c[1]) boxMesh(T, x, y, z, [0, y0, w0, a, y1, w1], tl, ls, lb);
+    if (c[2]) boxMesh(T, x, y, z, [w0, y0, b, w1, y1, 1], tl, ls, lb);
+    if (c[3]) boxMesh(T, x, y, z, [w0, y0, 0, w1, y1, a], tl, ls, lb);
   }
 }
 function signMesh(T, x, y, z, def, ls, lb, f) {
@@ -2495,20 +2573,32 @@ function seasonNow() {
   return "Summer";
 }
 
+// ---- flying mounts ----
+MOB.stormwing = { n: "Stormwing", cat: "rare", rare: true, shy: true, hp: 10, w: 0.5, h: 0.9, speed: 4.8, fly: true, bird: true, flap: 7, drops: [], hab: "Open skies over meadows and woodland, by day, rarely", note: "A broad-winged hawk that rides the thermals. Win its trust and it will carry you." };
+MOB.duskwing = { n: "Duskwing", cat: "rare", rare: true, shy: true, nocturnal: true, hp: 8, w: 0.5, h: 0.9, speed: 4.2, fly: true, bird: true, flap: 6, drops: [], hab: "Night skies over woodland and marsh, rarely", note: "A silent violet owl whose eyes glow like lanterns. It tolerates only the most generous of friends." };
 // ---- taming ----
 const TAMEDEF = {
   mossback: [I.FEED, 3], hare: [I.FEED, 2], woolhorn: [I.FEED, 3], shellback: [I.FEED, 3],
   tusker: [I.JERKY, 4], rimecat: [I.JERKY, 5], skink: [I.BAIT, 2], croaker: [I.BAIT, 2], finch: [I.SEED, 2],
   glimmerstag: [I.STAR, 3], gildhare: [I.STAR, 2], crystalback: [I.STAR, 3], moonmoth: [I.STAR, 2],
+  stormwing: [I.JERKY, 4], duskwing: [I.STAR, 3],
 };
 for (const t in TAMEDEF) MOB[t].tame = { food: TAMEDEF[t][0], need: TAMEDEF[t][1] };
+MOB.mossback.ride = { speed: 5.2, seat: 1.15, jump: 8.4 };
+MOB.woolhorn.ride = { speed: 6, seat: 1.5, jump: 8.8 };
+MOB.tusker.ride = { speed: 6.6, seat: 1.1, jump: 9 };
+MOB.glimmerstag.ride = { speed: 9.5, seat: 1.75, jump: 10.5 };
+MOB.shellback.ride = { speed: 3.6, seat: 0.55, jump: 7 };
+MOB.crystalback.ride = { speed: 4.2, seat: 0.7, jump: 7 };
+MOB.stormwing.ride = { speed: 11, seat: 0.95, fly: true };
+MOB.duskwing.ride = { speed: 10, seat: 0.9, fly: true };
 MOB.settler.hire = true;
 MOB.wanderer = { n: "Wanderer", cat: "npc", hp: 20, w: 0.3, h: 1.85, speed: 1.3, hire: true, drops: [], hab: "Roams the overworld by day", note: "Carries news, a request or two, and a strong pair of boots for hire." };
 ROBES.wander = [0x5a4a3a, 0x3a4a5a, 0x6a3a3a, 0x4a5a3a];
 const GIFT = {
   mossback: [I.FIBER, 1, 3, 240], woolhorn: [I.HIDE, 1, 2, 360], hare: [I.SEED, 1, 3, 200], shellback: [BL.SAND, 2, 4, 300],
   skink: [I.STICK, 1, 2, 240], croaker: [BL.REEDS, 1, 2, 240], finch: [I.STICK, 1, 3, 220],
-  glimmerstag: [I.ANTLER, 1, 1, 1200], gildhare: [I.PELT, 1, 1, 1500], crystalback: [I.CRYSTAL, 1, 1, 1500], moonmoth: [I.MOONDUST, 1, 1, 900], rimecat: [I.FANG, 1, 1, 1500],
+  glimmerstag: [I.ANTLER, 1, 1, 1200], gildhare: [I.PELT, 1, 1, 1500], crystalback: [I.CRYSTAL, 1, 1, 1500], moonmoth: [I.MOONDUST, 1, 1, 900], rimecat: [I.FANG, 1, 1, 1500], stormwing: [I.STICK, 2, 4, 300], duskwing: [I.MOONDUST, 1, 1, 900],
 };
 const PET_NAMES = ["Biscuit", "Clover", "Pebble", "Juniper", "Maple", "Bramble", "Acorn", "Thistle", "Nutmeg", "Sorrel", "Pip", "Ember", "Willow", "Moss", "Dusty", "Saffron", "Tumble", "Fennel"];
 function petName() { const used = new Set(comps.map(c => c.name)); const free = PET_NAMES.filter(n => !used.has(n)); return pickOf(free.length ? free : PET_NAMES) + (free.length ? "" : " II"); }
@@ -2553,6 +2643,10 @@ function giveGift(c) {
 function animalUse(m) {
   const d = m.def, id = held();
   if (m.comp) {
+    if (m.comp.kind === "animal" && d.ride) {
+      if (id && ITEM[id] && ITEM[id].saddle) return saddleUp(m, id);
+      if (!id && m.comp.saddled && !keys.has("ShiftLeft")) { mountComp(m); return true; }
+    }
     if (id && d.tame && id === d.tame.food) { toast(`${m.comp.name} enjoys the treat`); heartBurst(m); if (mode === "survival") useSlot(); sound("eat"); return true; }
     if (!id && m.comp.kind === "animal") { setRole(m.comp, m.comp.role === "follow" ? "stay" : "follow"); return true; }
     return false;
@@ -2572,6 +2666,8 @@ function setRole(c, role) {
   dirtySave = true; if (invOpen) renderInv();
 }
 function releaseComp(c) {
+  if (riding && riding.comp === c) dismount(true);
+  if (c.saddled) { addItem(c.saddled, 1, true); c.saddled = 0; }
   const i = comps.indexOf(c); if (i >= 0) comps.splice(i, 1);
   if (c.person) c.person.comp = null;
   const m = c.mob;
@@ -2608,7 +2704,7 @@ function compHit(m, foe, dmg) {
 function compBrain(m, dt, dist, dx, dz, wet, speed) {
   const c = m.comp, def = m.def, pp = player.p;
   m.angry = 0; m.flee = 0;
-  const anchor = c.role === "follow" ? pp : { x: c.post[0], y: c.post[1], z: c.post[2] };
+  const anchor = c.role === "follow" ? pp : { x: c.post[0], y: c.post[1] == null ? m.p.y : c.post[1], z: c.post[2] };
   if (c.role === "follow" && (dist > 26 || (dist > 14 && (m.stuck || 0) > 3))) { const s = nearSpot(2.5, m.h > 1); tpTo(m, s[0], s[1] + (def.fly ? 2 : 0), s[2]); m.stuck = 0; return speed; }
   if (c.role !== "follow" && Math.hypot(anchor.x - m.p.x, anchor.z - m.p.z) > 30 && chunkBuilt(anchor.x, anchor.z)) { tpTo(m, anchor.x, anchor.y + 0.05, anchor.z); return speed; }
   if (c.kind === "animal" && GIFT[c.type] && c.role === "follow" && dist < 12) { c.gift -= dt; if (c.gift <= 0) giveGift(c); }
@@ -2646,9 +2742,11 @@ function compBrain(m, dt, dist, dx, dz, wet, speed) {
   return speed * (d2 > 10 ? 1.7 : 1.15);
 }
 function spawnComp(c, x, y, z) {
+  if (y == null) y = surfaceY(Math.floor(x), Math.floor(z));
+  if (c.post && c.post[1] == null) c.post[1] = y;
   const extra = { comp: c };
   if (c.kind === "person") { extra.person = c.person; extra.home = c.v || null; extra.slot = undefined; }
-  const m = spawnMob(c.type, x, y + (MOB[c.type].fly ? 2 : 0), z, extra); c.mob = m; return m;
+  const m = spawnMob(c.type, x, y + (MOB[c.type].fly ? 2 : 0), z, extra); c.mob = m; if (c.saddled) addSaddleVisual(m); return m;
 }
 function compTick() {
   const pp = player.p;
@@ -2919,7 +3017,7 @@ function renderHire(list, p) {
     sectEl(list, c.role === "guard" ? "Guarding this spot" : "Travelling with you");
     noteEl(list, c.role === "guard" ? "Fights off hostile creatures near their post. They go on duty again whenever you return." : "Follows you, goes through doors, and fights beside you.");
     const bar = document.createElement("div"); bar.className = "cbtns";
-    bar.append(btn("Follow me", () => setRole(c, "follow"), c.role !== "follow", c.role === "follow"), btn("Guard here", () => setRole(c, "guard"), c.role !== "guard", c.role === "guard"), btn("Dismiss", () => releaseComp(c), true));
+    bar.append(btn("Follow me", () => setRole(c, "follow"), c.role !== "follow", c.role === "follow"), btn("Guard here", () => setRole(c, "guard"), c.role !== "guard", c.role === "guard"), btn(c.role === "guard" && c.post ? "Move post…" : "Assign post…", () => startAssign(c)), btn("Dismiss", () => releaseComp(c), true));
     list.appendChild(bar); return;
   }
   if (w) {
@@ -2955,6 +3053,11 @@ function renderTrades() {
   const tabs = []; if (p && p.quest) tabs.push(["quest", "Request"]); if (offers.length) tabs.push(["trade", "Trade"]); if (p && tradeWith.def.hire) tabs.push(["hire", "Hire"]);
   if (!tabs.some(t => t[0] === dlgTab)) dlgTab = tabs.length ? tabs[0][0] : "trade";
   $("craftTitle").textContent = "Talk"; list.innerHTML = "";
+  if (tabs.length > 1) {
+    const row = document.createElement("div"); row.className = "tabs"; row.style.justifySelf = "start";
+    for (const [k, label] of tabs) { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (k === dlgTab) b.className = "on"; b.addEventListener("click", () => { dlgTab = k; renderInv(); }); row.appendChild(b); }
+    list.appendChild(row);
+  }
   if (p) {
     const card = document.createElement("div"); card.className = "profile";
     const nm = document.createElement("div"); nm.className = "pn"; nm.textContent = p.name;
@@ -2962,14 +3065,9 @@ function renderTrades() {
     const story = document.createElement("p"); story.textContent = p.story;
     const greet = document.createElement("p"); greet.className = "say"; greet.textContent = `“${greeting(p)}”`;
     card.append(nm, meta, story, greet);
-    if (tradeWith.home) { const rum = document.createElement("p"); rum.className = "rumor"; rum.textContent = `“${rumorFor(tradeWith)}”`; card.appendChild(rum); }
-    if (tradeWith.home && tradeWith.home.lore) { const lore = document.createElement("p"); lore.className = "lore"; lore.textContent = tradeWith.home.lore; card.appendChild(lore); }
+    if (tradeWith.home && dlgTab === "trade") { const rum = document.createElement("p"); rum.className = "rumor"; rum.textContent = `“${rumorFor(tradeWith)}”`; card.appendChild(rum); }
+    if (tradeWith.home && tradeWith.home.lore && dlgTab === "trade") { const lore = document.createElement("p"); lore.className = "lore"; lore.textContent = tradeWith.home.lore; card.appendChild(lore); }
     list.appendChild(card);
-  }
-  if (tabs.length > 1) {
-    const row = document.createElement("div"); row.className = "tabs";
-    for (const [k, label] of tabs) { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (k === dlgTab) b.className = "on"; b.addEventListener("click", () => { dlgTab = k; renderInv(); }); row.appendChild(b); }
-    list.appendChild(row);
   }
   if (dlgTab === "quest") { renderQuestOffer(list, p); return; }
   if (dlgTab === "hire") { renderHire(list, p); return; }
@@ -3019,8 +3117,14 @@ function renderComps() {
     const mk = (label, fn, alt) => { const b = document.createElement("button"); b.type = "button"; b.className = "minibtn" + (alt ? " alt" : ""); b.textContent = label; b.addEventListener("click", fn); bar.appendChild(b); };
     if (c.role !== "follow") mk("Follow me", () => setRole(c, "follow"));
     if (c.role === "follow") mk(c.kind === "animal" ? "Stay here" : "Guard here", () => setRole(c, c.kind === "animal" ? "stay" : "guard"));
+    if (c.kind === "person") mk(c.role === "guard" && c.post ? "Move post…" : "Assign post…", () => startAssign(c));
+    if (c.saddled && c.mob) mk("Ride", () => { closeInv(); mountComp(c.mob); });
     mk("Release", () => releaseComp(c), true);
-    row.appendChild(bar); list.appendChild(row);
+    row.appendChild(bar);
+    const info = c.kind === "person" ? (c.role === "guard" && c.post ? `Post at ${Math.floor(c.post[0])}, ${Math.floor(c.post[2])}` : "")
+      : MOB[c.type].ride ? (c.saddled ? "Saddled. Right-click with an empty hand to ride." : MOB[c.type].ride.fly ? "Can be ridden with a Flight Harness." : "Can be ridden with a Saddle.") : "";
+    if (info) { const n = document.createElement("p"); n.className = "note"; n.style.margin = "4px 0 0"; n.textContent = info; row.appendChild(n); }
+    list.appendChild(row);
   }
 }
 
@@ -3030,23 +3134,23 @@ function extrasData() {
   return {
     boxes: [...containers].map(([k, c]) => [k, c.slots.map(s => s ? [s.id, s.n] : null)]),
     signs: [...signs].map(([k, s]) => [k, s.lines, s.f]),
-    comps: comps.map(c => ({ kind: c.kind, type: c.type, name: c.name, role: c.role, post: c.post, dim: c.dim, gift: c.gift, link: c.link || null, person: c.kind === "person" && !c.link ? personData(c.person) : null })),
+    comps: comps.map(c => ({ kind: c.kind, type: c.type, name: c.name, role: c.role, post: c.post, dim: c.dim, gift: c.gift, saddled: c.saddled || 0, link: c.link || null, person: c.kind === "person" && !c.link ? personData(c.person) : null })),
     workers: workers.map(w => ({ id: w.id, type: w.type, link: w.link, person: w.link ? null : personData(w.person), base: w.base, job: w.job, tier: w.tier, left: w.left, haul: w.haul, repeat: w.repeat, boxKey: w.boxKey, bio: w.bio })),
-    quests, tamed: [...journal.tamed],
+    quests, tamed: [...journal.tamed], map: mapSave(),
   };
 }
 function villageFor(vx, vz) { const v = cellData(0, Math.floor(vx / CELL), Math.floor(vz / CELL)).village; return v && v.x === vx && v.z === vz ? v : null; }
 function restoreExtras(s) {
   containers.clear(); signs.clear(); for (const o of signObjs.values()) { scene.remove(o); disposeSign(o); } signObjs.clear();
   comps.length = 0; workers.length = 0; quests.length = 0; journal.tamed = new Set((s && s.tamed) || []);
-  wandT = 15; boxOpen = null; signOpen = null;
+  wandT = 15; boxOpen = null; signOpen = null; mapRestore(s && s.map);
   if (!s) return;
   for (const [k, sl] of s.boxes || []) containers.set(k, { slots: sl.map(x => x && ITEM[x[0]] ? { id: x[0], n: x[1] } : null) });
   for (const [k, lines, f] of s.signs || []) signs.set(k, { lines, f });
   for (const q of s.quests || []) quests.push(q);
   for (const d of s.comps || []) {
     if (!MOB[d.type]) continue;
-    const c = { id: nid(), kind: d.kind, type: d.type, name: d.name, role: d.role, post: d.post, dim: d.dim, gift: d.gift || 0, mob: null, link: d.link || null };
+    const c = { id: nid(), kind: d.kind, type: d.type, name: d.name, role: d.role, post: d.post, dim: d.dim, gift: d.gift || 0, mob: null, link: d.link || null, saddled: ITEM[d.saddled] ? d.saddled : 0 };
     if (d.kind === "person") {
       if (d.link) { const v = villageFor(d.link.vx, d.link.vz); if (!v || !v.people[d.link.slot]) continue; c.person = v.people[d.link.slot]; c.v = v; }
       else if (d.person) c.person = d.person; else continue;
@@ -3060,6 +3164,298 @@ function restoreExtras(s) {
     else if (d.person) w.person = d.person; else continue;
     w.person.worker = w; workers.push(w);
   }
+}
+
+// ================= discard =================
+function discardStack(s, all) {
+  if (!s) return false;
+  const k = all ? s.n : 1, nm = ITEM[s.id] ? ITEM[s.id].n : "item";
+  toast(`Discarded ${k > 1 ? k + " " : ""}${nm}`); sound("hit");
+  return k;
+}
+function discardCursor(one) {
+  if (!cursor) { toast("Pick up a stack first, then click Discard"); return; }
+  const k = discardStack(cursor, !one);
+  cursor.n -= k; if (cursor.n <= 0) cursor = null;
+  renderCursor(); invChanged();
+}
+function discardHeld(all) {
+  const s = inv[sel]; if (!s) return;
+  if (mode === "creative") { toast("Creative items are endless. Nothing to discard"); return; }
+  const k = discardStack(s, all);
+  s.n -= k; if (s.n <= 0) inv[sel] = null;
+  invChanged();
+}
+$("trashBtn").addEventListener("click", () => discardCursor(false));
+$("trashBtn").addEventListener("contextmenu", e => { e.preventDefault(); discardCursor(true); });
+
+// ================= world map =================
+const explored = new Set(), landmarks = new Map();
+let mapOpen = false, mapStep = 1, mapCX = 0, mapCZ = 0, assignFor = null, mapDirty = true, exploreT = 0, mapAnim = 0;
+const MAP_STEPS = [4, 8, 16], MAP_CELLS = 112, MAP_PX = 4, MAP_W = MAP_CELLS * MAP_PX;
+const mapCv = $("mapCv"), mapCtx = mapCv.getContext("2d"), mapCache = new Map();
+let mapImg = null;
+const MAPCOL = [[112, 164, 84], [58, 112, 62], [218, 192, 124], [228, 236, 242], [96, 124, 82]];
+const FOG = [20, 25, 23];
+function mapColor(x, z) {
+  const h = heightAt(x, z), b = biomeAt(x, z);
+  let c;
+  if (h < SEA) { const d = Math.min(1, (SEA - h) / 9); c = b === BIOME.TUNDRA ? [176 - 50 * d, 208 - 50 * d, 224 - 40 * d] : [52 - 26 * d, 112 - 50 * d, 170 - 56 * d]; }
+  else {
+    c = MAPCOL[b];
+    if (h >= 46 && b !== BIOME.DUNES) { const t = Math.min(1, (h - 46) / 10); c = [c[0] + (132 - c[0]) * (0.6 + 0.2 * t), c[1] + (132 - c[1]) * (0.6 + 0.2 * t), c[2] + (138 - c[2]) * (0.6 + 0.2 * t)]; if (h >= 58) c = [236, 238, 244]; }
+    const sh = 0.78 + Math.min(1, (h - SEA) / 40) * 0.42; c = [c[0] * sh, c[1] * sh, c[2] * sh];
+  }
+  return (Math.max(0, Math.min(255, c[0])) | 0) | ((Math.max(0, Math.min(255, c[1])) | 0) << 8) | ((Math.max(0, Math.min(255, c[2])) | 0) << 16);
+}
+function mapCell(ix, iz, step) {
+  const wx = ix * step + (step >> 1), wz = iz * step + (step >> 1);
+  if (!explored.has(Math.floor(wx / 16) + "," + Math.floor(wz / 16))) return 0xff000000 | FOG[0] | (FOG[1] << 8) | (FOG[2] << 16);
+  const key = step + ":" + ix + ":" + iz; let v = mapCache.get(key);
+  if (v === undefined) { v = (0xff000000 | mapColor(wx, wz)) >>> 0; if (mapCache.size > 60000) mapCache.clear(); mapCache.set(key, v); }
+  return v;
+}
+const mapSX = x => ((x - mapCX) / MAP_STEPS[mapStep] + MAP_CELLS / 2) * MAP_PX;
+const mapSZ = z => ((z - mapCZ) / MAP_STEPS[mapStep] + MAP_CELLS / 2) * MAP_PX;
+function mapWorld(px, py) { const st = MAP_STEPS[mapStep]; return [mapCX + (px / MAP_W * MAP_CELLS - MAP_CELLS / 2) * st, mapCZ + (py / MAP_W * MAP_CELLS - MAP_CELLS / 2) * st]; }
+function drawMap() {
+  mapDirty = false; mapAnim = 0;
+  const st = MAP_STEPS[mapStep];
+  if (!mapImg) mapImg = mapCtx.createImageData(MAP_W, MAP_W);
+  const buf = new Uint32Array(mapImg.data.buffer);
+  const ox = Math.floor(mapCX / st) - MAP_CELLS / 2, oz = Math.floor(mapCZ / st) - MAP_CELLS / 2;
+  // sub-cell offset so panning is smooth
+  const fx = (mapCX / st - Math.floor(mapCX / st)) * MAP_PX | 0, fz = (mapCZ / st - Math.floor(mapCZ / st)) * MAP_PX | 0;
+  const row = new Uint32Array(MAP_CELLS + 1);
+  for (let j = 0; j <= MAP_CELLS; j++) {
+    for (let i = 0; i <= MAP_CELLS; i++) row[i] = mapCell(ox + i, oz + j, st);
+    for (let py = 0; py < MAP_PX; py++) {
+      const y = j * MAP_PX + py - fz; if (y < 0 || y >= MAP_W) continue;
+      for (let i = 0; i <= MAP_CELLS; i++) { const c = row[i]; for (let px = 0; px < MAP_PX; px++) { const x = i * MAP_PX + px - fx; if (x >= 0 && x < MAP_W) buf[y * MAP_W + x] = c; } }
+    }
+  }
+  mapCtx.putImageData(mapImg, 0, 0);
+  const g = mapCtx; g.font = "bold 11px sans-serif"; g.textAlign = "center";
+  const label = (t, x, y, col) => { g.lineWidth = 3; g.strokeStyle = "rgba(0,0,0,.8)"; g.strokeText(t, x, y); g.fillStyle = col || "#fff"; g.fillText(t, x, y); };
+  const inb = (x, y) => x > -20 && y > -20 && x < MAP_W + 20 && y < MAP_W + 20;
+  // landmarks
+  for (const L of landmarks.values()) {
+    const x = mapSX(L.x), y = mapSZ(L.z); if (!inb(x, y)) continue;
+    if (L.kind === "village") {
+      g.fillStyle = "#000"; g.fillRect(x - 6, y - 4, 12, 9); g.fillStyle = "#e8b04a"; g.fillRect(x - 5, y - 3, 10, 7);
+      g.fillStyle = "#b8452f"; g.beginPath(); g.moveTo(x - 7, y - 3); g.lineTo(x, y - 10); g.lineTo(x + 7, y - 3); g.closePath(); g.fill();
+      if (mapStep <= 1) label(L.name, x, y + 18, "#ffe6a8");
+    } else {
+      g.fillStyle = "#000"; g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x + 7, y + 5); g.lineTo(x - 7, y + 5); g.closePath(); g.fill();
+      g.fillStyle = L.kind === "tower" ? "#c9b7ff" : "#b8bcc4"; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x + 5, y + 3); g.lineTo(x - 5, y + 3); g.closePath(); g.fill();
+      if (mapStep === 0) label(L.kind === "tower" ? "Tower" : "Ruin", x, y + 17, "#d6d2ee");
+    }
+  }
+  // storage boxes
+  g.fillStyle = "#b07a3a"; g.strokeStyle = "#000"; g.lineWidth = 1;
+  for (const k of containers.keys()) { const m = /^(\d+):(-?\d+),(-?\d+),(-?\d+)$/.exec(k); if (!m || +m[1] !== 0) continue; const x = mapSX(+m[2] + 0.5), y = mapSZ(+m[4] + 0.5); if (inb(x, y)) { g.fillRect(x - 3, y - 3, 6, 6); g.strokeRect(x - 3.5, y - 3.5, 7, 7); } }
+  // spawn point
+  if (spawnPoint) { const x = mapSX(spawnPoint[0]), y = mapSZ(spawnPoint[1]); if (inb(x, y)) { g.fillStyle = "#e14b4b"; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 5, 0, 6.3); g.fill(); g.stroke(); label("Spawn", x, y + 16, "#ffb0b0"); } }
+  // guard posts
+  for (const c of comps) {
+    if (c.role !== "guard" || !c.post || c.dim !== 0) continue;
+    const x = mapSX(c.post[0]), y = mapSZ(c.post[2]); if (!inb(x, y)) continue;
+    const r = 14 / st * MAP_PX;
+    g.fillStyle = "rgba(90,170,255,.16)"; g.strokeStyle = "rgba(120,190,255,.8)"; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill(); g.stroke();
+    g.fillStyle = "#6fb8ff"; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y - 7); g.lineTo(x + 6, y); g.lineTo(x, y + 7); g.lineTo(x - 6, y); g.closePath(); g.fill(); g.stroke();
+    label(c.name, x, y - 11, "#bfe0ff");
+  }
+  // quest targets
+  for (const q of quests) {
+    if (q.type !== "explore" || q.reached) continue;
+    const x = mapSX(q.tx), y = mapSZ(q.tz); if (!inb(x, y)) continue;
+    g.fillStyle = "#ffd84a"; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -1.5708 + i * 0.6283, rr = i % 2 ? 4 : 9; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    g.closePath(); g.fill(); g.stroke(); label("Quest", x, y + 19, "#ffe890");
+  }
+  // assign cursor hint is drawn by CSS cursor; player arrow last
+  const px = mapSX(player.p.x), py = mapSZ(player.p.z), fxd = -Math.sin(player.yaw), fzd = -Math.cos(player.yaw), qx = -fzd, qz = fxd;
+  g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath();
+  g.moveTo(px + fxd * 10, py + fzd * 10); g.lineTo(px - fxd * 6 + qx * 6, py - fzd * 6 + qz * 6); g.lineTo(px - fxd * 3, py - fzd * 3); g.lineTo(px - fxd * 6 - qx * 6, py - fzd * 6 - qz * 6); g.closePath(); g.fill(); g.stroke();
+  // compass
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(MAP_W - 26, 6, 20, 20); label("N", MAP_W - 16, 21, "#fff");
+  $("mapScale").textContent = `${st} blocks per pixel step · ${Math.round(MAP_CELLS * st)} blocks across`;
+}
+function updateMapBanner() {
+  const b = $("mapBanner");
+  if (assignFor) { b.hidden = false; $("mapBannerTxt").textContent = `Click the map where ${assignFor.name} should stand guard.`; mapCv.style.cursor = "crosshair"; }
+  else { b.hidden = true; mapCv.style.cursor = "grab"; }
+}
+function openMap(assign) {
+  if (!playing || dead || invOpen || signOpen || mapOpen) return;
+  if (DIM !== 0) { toast("The Cinderdeep cannot be mapped"); return; }
+  mapOpen = true; keys.clear(); mining = false; useHeld = false;
+  assignFor = assign || null;
+  mapCX = Math.floor(assign && assign.post ? assign.post[0] : player.p.x); mapCZ = Math.floor(assign && assign.post ? assign.post[2] : player.p.z);
+  if (assign && assign.post) { mapCX = Math.floor(player.p.x); mapCZ = Math.floor(player.p.z); }
+  $("mapv").hidden = false; updateMapBanner(); drawMap();
+  if (locked) document.exitPointerLock();
+}
+function closeMap(noLock) {
+  if (!mapOpen) return;
+  mapOpen = false; assignFor = null; $("mapv").hidden = true;
+  if (!noLock && !TOUCH && !dragLook && playing) requestLock();
+}
+function exploreTick() {
+  if (DIM !== 0) return;
+  const pcx = Math.floor(player.p.x / 16), pcz = Math.floor(player.p.z / 16); let add = 0;
+  for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+    if (dx * dx + dz * dz > 11) continue;
+    const k = (pcx + dx) + "," + (pcz + dz); if (!explored.has(k)) { explored.add(k); add++; }
+  }
+  const gx0 = Math.floor(player.p.x / CELL), gz0 = Math.floor(player.p.z / CELL);
+  for (let gz = gz0 - 1; gz <= gz0 + 1; gz++) for (let gx = gx0 - 1; gx <= gx0 + 1; gx++) {
+    const c = cellData(0, gx, gz);
+    if (c.village) { const v = c.village, k = "v" + v.x + "," + v.z; if (!landmarks.has(k) && Math.hypot(v.x - player.p.x, v.z - player.p.z) < 100) { landmarks.set(k, { kind: "village", x: v.x, z: v.z, name: v.name }); add++; } }
+    if (c.mark) { const k = "m" + c.mark.x + "," + c.mark.z; if (!landmarks.has(k) && Math.hypot(c.mark.x - player.p.x, c.mark.z - player.p.z) < 60) { landmarks.set(k, { kind: c.mark.kind, x: c.mark.x, z: c.mark.z }); add++; } }
+  }
+  if (add) { mapDirty = true; dirtySave = true; }
+}
+function mapTick(dt) {
+  exploreT -= dt; if (exploreT <= 0) { exploreT = 1; exploreTick(); }
+  if (mapOpen) { mapAnim += dt; if (mapDirty || mapAnim > 0.4) drawMap(); }
+}
+// pan / zoom / click
+{
+  let drag = null;
+  const rel = e => { const r = mapCv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * MAP_W, (e.clientY - r.top) / r.height * MAP_W, r]; };
+  mapCv.addEventListener("pointerdown", e => { const [x, y] = rel(e); drag = { x, y, cx: mapCX, cz: mapCZ, moved: 0, id: e.pointerId }; try { mapCv.setPointerCapture(e.pointerId); } catch (_) {} });
+  mapCv.addEventListener("pointermove", e => {
+    const [x, y] = rel(e), st = MAP_STEPS[mapStep];
+    if (drag) {
+      drag.moved = Math.max(drag.moved, Math.abs(x - drag.x) + Math.abs(y - drag.y));
+      if (drag.moved > 6) { mapCX = drag.cx - (x - drag.x) / MAP_PX * st; mapCZ = drag.cz - (y - drag.y) / MAP_PX * st; mapDirty = true; if (!assignFor) mapCv.style.cursor = "grabbing"; }
+    }
+    const [wx, wz] = mapWorld(x, y), k = Math.floor(wx / 16) + "," + Math.floor(wz / 16);
+    $("mapInfo").textContent = explored.has(k) ? `${Math.floor(wx)}, ${Math.floor(wz)} · ${BIOME_NAME[biomeAt(Math.floor(wx), Math.floor(wz))]}` : `${Math.floor(wx)}, ${Math.floor(wz)} · unexplored`;
+  });
+  mapCv.addEventListener("pointerup", e => {
+    const d = drag; drag = null; if (!assignFor) mapCv.style.cursor = "grab";
+    if (!d || d.moved > 6) return;
+    if (assignFor) {
+      const [x, y] = rel(e), [wx, wz] = mapWorld(x, y);
+      if (!explored.has(Math.floor(wx / 16) + "," + Math.floor(wz / 16))) { toast("Explore that area first", true); return; }
+      assignPost(assignFor, wx, wz);
+    }
+  });
+  mapCv.addEventListener("wheel", e => { e.preventDefault(); zoomMap(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+}
+function zoomMap(d) { const n = Math.max(0, Math.min(MAP_STEPS.length - 1, mapStep + d)); if (n !== mapStep) { mapStep = n; mapDirty = true; } }
+$("mapIn").addEventListener("click", () => zoomMap(-1));
+$("mapOut").addEventListener("click", () => zoomMap(1));
+$("mapCenter").addEventListener("click", () => { mapCX = Math.floor(player.p.x); mapCZ = Math.floor(player.p.z); mapDirty = true; });
+$("mapClose").addEventListener("click", () => closeMap());
+$("mapCancel").addEventListener("click", () => { assignFor = null; updateMapBanner(); });
+$("mapv").addEventListener("mousedown", e => { if (e.target.id === "mapv") closeMap(); });
+$("tMap").addEventListener("click", () => { if (mapOpen) closeMap(); else openMap(); });
+
+// ================= guard posts =================
+function startAssign(c) {
+  if (c.kind !== "person") return;
+  if (DIM !== 0) { toast("Guard posts are set in the overworld", true); return; }
+  closeInv(true); openMap(c);
+}
+function assignPost(c, wx, wz) {
+  const x = Math.floor(wx), z = Math.floor(wz), built = chunkBuilt(x, z);
+  c.role = "guard"; c.post = [x + 0.5, built ? surfaceY(x, z) : null, z + 0.5]; c.dim = 0; c.gift = c.gift || 0;
+  const m = c.mob;
+  if (m) {
+    m.path = null; m.wasGo = false;
+    if (Math.hypot(m.p.x - x, m.p.z - z) > 24) { removeMob(m); toast(`${c.name} heads off to the post at ${x}, ${z}`, false, 3200); }
+    else { if (m.mark) markMob(m, desiredMark(m)); toast(`${c.name} will guard the post at ${x}, ${z}`, false, 3200); }
+  } else toast(`${c.name} will guard the post at ${x}, ${z}`, false, 3200);
+  dirtySave = true; closeMap();
+}
+
+// ================= mounts =================
+let riding = null;
+const rideIn = { x: 0, z: 0, up: 0, jump: false, boost: false };
+function addSaddleVisual(m) {
+  if (m.saddled) return; m.saddled = true;
+  const R = m.def.ride; if (!R) return; const y = R.seat - 0.05, fly = !!R.fly;
+  part(m, fly ? 0x5a3a28 : 0x6a3c1e, fly ? 0.34 : 0.5, 0.08, fly ? 0.5 : 0.6, 0, y - 0.04, -0.05);
+  part(m, 0xd8b040, fly ? 0.36 : 0.52, 0.1, 0.06, 0, y - 0.02, fly ? 0.2 : 0.26);
+  if (fly) part(m, 0x9ff8ff, 0.1, 0.1, 0.1, 0, y + 0.03, -0.05, { glow: true });
+}
+function saddleUp(m, id) {
+  const c = m.comp, R = m.def.ride, it = ITEM[id];
+  if (c.saddled) { toast(`${c.name} already wears one`); return true; }
+  const need = R.fly ? 2 : 1;
+  if (it.saddle !== need) { toast(R.fly ? `${m.def.n} is a flier. It needs a Flight Harness` : `${m.def.n} wears an ordinary Saddle`); return true; }
+  c.saddled = id; addSaddleVisual(m); if (mode === "survival") useSlot();
+  toast(`${c.name} is ready to ride. Right-click with an empty hand to mount`, false, 3600); heartBurst(m); sound("place"); dirtySave = true; return true;
+}
+function mountComp(m) {
+  if (riding || !m.comp || !m.comp.saddled) return false;
+  if (Math.hypot(m.p.x - player.p.x, m.p.z - player.p.z) > 6) { toast(`Call ${m.comp.name} closer first`); return false; }
+  const c = m.comp, R = m.def.ride;
+  if (c.role !== "follow") { c.role = "follow"; c.post = null; }
+  riding = m; m.path = null; m.wasGo = false; useHeld = false; mining = false;
+  player.fly = false; player.v.set(0, 0, 0); $("tFly").classList.remove("on");
+  toast(R.fly ? `Riding ${c.name}. Space climbs, Shift dives, Ctrl boosts. Right-click to dismount` : `Riding ${c.name}. Space jumps, Shift or Ctrl boosts. Right-click to dismount`, false, 4200);
+  rideFollow(); sound("place"); dirtySave = true; return true;
+}
+function dismount(force) {
+  if (!riding) return true; const m = riding;
+  if (m.def.ride.fly && !force) {
+    const gy = surfaceY(Math.floor(m.p.x), Math.floor(m.p.z));
+    if (m.p.y - gy > 3.2) { toast("Land before you dismount. Hold Shift to descend", true); return false; }
+  }
+  riding = null; useHeld = false; player.v.set(0, 0, 0);
+  let placed = false;
+  for (let i = 0; i < 8 && !placed; i++) {
+    const a = i * 0.785, x = Math.floor(m.p.x + Math.cos(a) * 1.5), z = Math.floor(m.p.z + Math.sin(a) * 1.5);
+    const st = chunkBuilt(x, z) && standY(x, z, Math.floor(m.p.y), true, 3, false);
+    if (st && !st.swim) { player.p.set(x + 0.5, st.f + 0.01, z + 0.5); placed = true; }
+  }
+  if (!placed) player.p.set(m.p.x, m.p.y + 0.1, m.p.z);
+  toast(`Dismounted from ${m.comp ? m.comp.name : "mount"}`); return true;
+}
+function rideInput(dt) {
+  const R = riding.def.ride;
+  let fx = 0, fz = 0;
+  if (!invOpen && !mapOpen) {
+    if (keys.has("KeyW") || keys.has("ArrowUp")) fz -= 1;
+    if (keys.has("KeyS") || keys.has("ArrowDown")) fz += 1;
+    if (keys.has("KeyA") || keys.has("ArrowLeft")) fx -= 1;
+    if (keys.has("KeyD") || keys.has("ArrowRight")) fx += 1;
+    fx += tstate.mx; fz += tstate.my;
+  }
+  const L = Math.hypot(fx, fz); if (L > 1) { fx /= L; fz /= L; }
+  const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
+  rideIn.x = fx * cy + fz * sy; rideIn.z = -fx * sy + fz * cy;
+  const up = keys.has("Space"), sh = keys.has("ShiftLeft") || keys.has("ShiftRight"), ctl = keys.has("ControlLeft") || keys.has("ControlRight");
+  rideIn.jump = up && !invOpen; rideIn.up = invOpen ? 0 : (up ? 1 : 0) - (R.fly && sh ? 1 : 0);
+  rideIn.boost = ctl || (!R.fly && sh);
+  player.invuln -= dt;
+  if (mode === "survival" && player.hp < 20 && gameTime - player.lastHurt > 6) { player.regenT -= dt; if (player.regenT <= 0) { player.regenT = 3; player.hp++; drawHearts(); } }
+}
+function rideDrive(m) {
+  const R = m.def.ride;
+  m.angry = 0; m.flee = 0; m.fighting = false; m.faceYaw = undefined; m.think = 5; m.path = null; m.wasGo = false; m.stuck = 0;
+  m.dir.set(rideIn.x, rideIn.z);
+  if (!R.fly && rideIn.jump && m.ground) m.v.y = R.jump;
+  return R.speed * (rideIn.boost ? 1.5 : 1);
+}
+function rideFollow() {
+  if (!riding) return;
+  const m = riding;
+  if (!mobs.includes(m)) { riding = null; return; }
+  player.p.set(m.p.x, m.p.y + m.def.ride.seat, m.p.z); player.v.set(0, 0, 0); player.ground = true;
+}
+
+// ================= save / load of map data =================
+function mapSave() { return { explored: [...explored], landmarks: [...landmarks.values()] }; }
+function mapRestore(s) {
+  explored.clear(); landmarks.clear(); mapCache.clear(); mapDirty = true; riding = null;
+  if (!s) return;
+  for (const k of s.explored || []) explored.add(k);
+  for (const L of s.landmarks || []) landmarks.set((L.kind === "village" ? "v" : "m") + L.x + "," + L.z, L);
 }
 
 // ================= particles =================
@@ -3085,8 +3481,12 @@ let playing = false, locked = false, dragLook = false, mining = false, useHeld =
 const menu = $("menu");
 addEventListener("keydown", e => {
   if (!playing || signOpen) return;
+  if (e.code === "KeyM" || (e.code === "Escape" && mapOpen)) { e.preventDefault(); if (mapOpen) closeMap(); else openMap(); return; }
+  if (mapOpen) return;
+  if (invOpen && cursor && (e.code === "Delete" || e.code === "Backspace" || e.code === "KeyQ")) { e.preventDefault(); discardCursor(false); return; }
   if (e.code === "KeyE" || (e.code === "Escape" && invOpen)) { e.preventDefault(); invOpen ? closeInv() : openInv(); return; }
   if (invOpen) return;
+  if (e.code === "KeyQ") { if (!e.repeat) discardHeld(e.shiftKey); return; }
   keys.add(e.code);
   if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
   if (e.code === "KeyF") toggleFly();
@@ -3100,7 +3500,7 @@ cv.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("pointerlockchange", () => {
   locked = document.pointerLockElement === cv;
   if (!locked) { mining = false; useHeld = false; }
-  if (!locked && playing && !dragLook && !invOpen && !dead && !signOpen) pause();
+  if (!locked && playing && !dragLook && !invOpen && !dead && !signOpen && !mapOpen) pause();
 });
 document.addEventListener("pointerlockerror", () => { dragLook = true; });
 function look(dx, dy, k) { player.yaw -= dx * k; player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch - dy * k)); }
@@ -3117,7 +3517,7 @@ cv.addEventListener("mousedown", e => {
   else if (e.button === 2) { useHeld = true; useT = 0.28; use(); }
 });
 addEventListener("mouseup", e => { if (e.button === 0) { mining = false; mdown = false; } if (e.button === 2) useHeld = false; });
-addEventListener("wheel", e => { if (playing && !invOpen) select((sel + (e.deltaY > 0 ? 1 : -1) + 9) % 9); }, { passive: true });
+addEventListener("wheel", e => { if (playing && !invOpen && !mapOpen) select((sel + (e.deltaY > 0 ? 1 : -1) + 9) % 9); }, { passive: true });
 function requestLock() {
   try { const r = cv.requestPointerLock(); if (r && r.catch) r.catch(() => { dragLook = true; }); } catch (_) { dragLook = true; }
   setTimeout(() => { if (!locked && playing && !invOpen) dragLook = true; }, 900);
@@ -3269,7 +3669,8 @@ function sleep(h) {
   }, 1100);
 }
 function use() {
-  if (!playing || invOpen || signOpen) return;
+  if (!playing || invOpen || signOpen || mapOpen) return;
+  if (riding) { useHeld = false; dismount(); return; }
   swingHand();
   const h = raycast(mode === "creative" ? 6 : 5), mh = rayMob(4, true);
   if (mh && (mh.m.def.trader || mh.m.def.hire) && (!h || mh.t < h.t)) { openInv(mh.m); return; }
@@ -3438,6 +3839,7 @@ function updateSky(dt) {
 const ipos = $("ipos"), itime = $("itime"), ifps = $("ifps"), imode = $("imode"), ibiome = $("ibiome"), iface = $("iface");
 let last = performance.now(), hudT = 0, frames = 0, stepT = 0;
 function physics(dt) {
+  if (riding) { rideInput(dt); return; }
   const here = chunks.get(ck(Math.floor(player.p.x / CX), Math.floor(player.p.z / CZ))); if (!here || !here.built) return;
   let fx = 0, fz = 0;
   if (!invOpen) {
@@ -3482,7 +3884,7 @@ function frame(now) {
     physics(dt);
     if (!invOpen) handleMining(dt);
     if (useHeld && !invOpen) { useT -= dt; if (useT <= 0) { useT = 0.24; use(); } }
-    updateMobs(dt, light); updateWorkers(dt); syncSigns(dt);
+    updateMobs(dt, light); rideFollow(); updateWorkers(dt); syncSigns(dt); mapTick(dt);
     spawnT -= dt; if (spawnT <= 0) { spawnT = 1.2; trySpawn(light); if (DIM === 0) villageTick(); compTick(); markTick(); questTick(); }
   }
   updateParts(dt);
@@ -3509,7 +3911,7 @@ function frame(now) {
 }
 
 // ================= menu =================
-function pause() { if (dead) return; playing = false; mining = false; useHeld = false; if (invOpen) closeInv(true); menu.hidden = false; keys.clear(); if (locked) document.exitPointerLock(); save(); $("play").textContent = "Resume"; }
+function pause() { if (dead) return; playing = false; mining = false; useHeld = false; if (invOpen) closeInv(true); if (mapOpen) closeMap(true); menu.hidden = false; keys.clear(); if (locked) document.exitPointerLock(); save(); $("play").textContent = "Resume"; }
 function resume() {
   menu.hidden = true; playing = true; last = performance.now();
   if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {} }
