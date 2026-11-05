@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Closet Computer</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">✦</span> Closet Computer</div>
+    <nav id="nav">
+      <a href="#closet" data-view="closet">👚 <span>Closet</span></a>
+      <a href="#dress" data-view="dress">🪞 <span>Dress me</span></a>
+      <a href="#lookbook" data-view="lookbook">📖 <span>Lookbook</span></a>
+      <a href="#tryons" data-view="tryons">✨ <span>Try-ons</span></a>
+      <a href="#me" data-view="me">🙂 <span>Me</span></a>
+      <a href="#settings" data-view="settings">⚙️ <span>Settings</span></a>
+    </nav>
+  </header>
+  <main id="view"></main>
+  <footer id="statusbar"></footer>
+  <div id="modal" class="modal hidden"><div class="modal-card" id="modal-card"></div></div>
+  <div id="toast"></div>
+  <input type="file" id="file-input" accept="image/*" multiple hidden>
+  <script src="/static/app.js"></script>
+</body>
+</html>

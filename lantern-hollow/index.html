@@ -1,0 +1,1653 @@
+<title>Lantern Hollow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Mountains+of+Christmas:wght@700&display=swap">
+<style>
+/* Layout: full-bleed pixel world; knitted wool panels float at the screen edges */
+:root{
+  --night:#0d1b26; --pine:#12302a; --pine-2:#1b4238; --snow:#f3f7fb; --frost:#9fc0d6;
+  --berry:#cf3d4f; --gold:#f2c35b; --ink:#0a1612;
+  --display:"Mountains of Christmas","Fredoka",cursive;
+  --ui:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--night);color:var(--snow);font-family:var(--ui);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;overflow:hidden;touch-action:none}
+#c{position:absolute;left:0;top:0;image-rendering:pixelated}
+.panel{background:rgba(16,40,34,.95);border:2px solid rgba(242,195,91,.6);border-radius:12px;box-shadow:0 4px 0 rgba(0,0,0,.35);position:relative}
+.panel::after{content:"";position:absolute;inset:4px;border:1.5px dashed rgba(242,195,91,.3);border-radius:8px;pointer-events:none}
+.knit{height:10px;border-radius:6px 6px 0 0;background:
+  linear-gradient(135deg,var(--berry) 25%,transparent 25%) -6px 0/12px 10px,
+  linear-gradient(225deg,var(--berry) 25%,transparent 25%) -6px 0/12px 10px,var(--snow)}
+.btn{font:600 14px/1 var(--ui);color:var(--snow);background:var(--pine-2);border:2px solid rgba(242,195,91,.55);border-radius:10px;padding:9px 12px;cursor:pointer}
+.btn:hover{background:#245446}
+.btn:focus-visible,.slot:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn.primary{background:var(--berry);border-color:#f6a3ad}
+.btn.primary:hover{background:#dc5163}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sel{outline:3px solid var(--gold);outline-offset:1px}
+#hud{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:max(12px,env(safe-area-inset-left,0px));display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+.hud-card{padding:8px 14px 9px}
+#hudDate{font-weight:600;font-size:14px}
+#hudTime{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1.2}
+#hudCount{font-size:12px;color:var(--frost)}
+.hud-coins{padding:8px 12px;display:flex;align-items:center;gap:6px;font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.ico{width:30px;height:30px;image-rendering:pixelated;flex:none}
+.ico.sm{width:20px;height:20px}
+#topbtns{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:max(12px,env(safe-area-inset-right,0px));display:flex;gap:6px}
+#prompt{position:absolute;transform:translate(-50%,-100%);background:rgba(10,22,18,.88);color:var(--snow);font-size:13px;font-weight:500;padding:5px 9px;border-radius:8px;white-space:nowrap;pointer-events:none;border:1px solid rgba(242,195,91,.5)}
+kbd{font:600 11px var(--ui);background:var(--gold);color:var(--ink);border-radius:4px;padding:1px 5px;margin-right:4px}
+#toasts{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:max-content;max-width:calc(100% - 32px)}
+.toast{display:flex;align-items:center;gap:8px;background:rgba(10,22,18,.9);border:1px solid rgba(242,195,91,.45);padding:6px 12px 6px 8px;border-radius:999px;font-size:14px;animation:tin .25s ease-out}
+.toast .ico{width:22px;height:22px}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+#dialog{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);width:min(660px,calc(100% - 24px));display:flex;gap:14px;padding:14px 16px;box-sizing:border-box}
+#portrait{width:72px;height:72px;image-rendering:pixelated;flex:none;background:rgba(255,255,255,.06);border-radius:10px}
+.dlg-body{flex:1;min-width:0}
+#dlgName{font-weight:600;color:var(--gold);font-size:15px}
+#dlgName small{color:var(--frost);font-weight:400;margin-left:6px}
+#dlgText{font-size:16px;line-height:1.45;margin:4px 0 10px;min-height:46px}
+#dlgOpts{display:flex;flex-wrap:wrap;gap:6px}
+#modalWrap{position:absolute;inset:0;background:rgba(5,12,18,.5);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+#modal{width:min(580px,100%);max-height:min(82vh,100%);display:flex;flex-direction:column;overflow:hidden}
+#modal header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;gap:12px}
+#modal h2{margin:0;font-size:20px;font-weight:600;text-wrap:balance}
+#mBody{overflow:auto;padding:4px 16px 16px;font-size:14px;line-height:1.45}
+#mBody h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--frost);margin:16px 0 6px;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:rgba(255,255,255,.05);border:1.5px solid rgba(159,192,214,.25);border-radius:10px;color:var(--snow);font:500 12px var(--ui);cursor:pointer;text-align:center}
+.slot:hover,.slot.on{border-color:var(--gold);background:rgba(242,195,91,.1)}
+.slot .n{position:absolute;top:4px;right:7px;font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums}
+.detail{margin-top:12px;padding:12px;background:rgba(0,0,0,.2);border-radius:10px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(159,192,214,.14)}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.row .nm{font-weight:600}
+.row .sub{color:var(--frost);font-size:12.5px}
+.needs{display:flex;flex-wrap:wrap;gap:8px;margin-top:3px}
+.need{display:inline-flex;align-items:center;gap:3px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.need.short{color:#f39aa5}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.hearts{color:var(--berry);letter-spacing:1px}
+.hearts .off{color:rgba(159,192,214,.3)}
+.bar{height:12px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(242,195,91,.35)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffe6a3)}
+.letter{background:#f6efe2;color:#3a2a20;border-radius:10px;padding:16px 18px;position:relative;font-size:15px;line-height:1.55}
+.letter .day{font-family:var(--display);font-size:46px;line-height:1;color:var(--berry);float:right;margin:-4px 0 6px 12px}
+.letter .from{margin-top:10px;font-style:italic}
+#fish{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 32px));padding:16px 18px;box-sizing:border-box;text-align:center}
+#fishMsg{font-size:17px;font-weight:600;margin:6px 0 12px;min-height:24px}
+.fbar{position:relative;height:26px;border-radius:13px;background:#0d2a3a;border:2px solid var(--frost);overflow:hidden}
+#fishZone{position:absolute;top:0;bottom:0;background:rgba(242,195,91,.75)}
+#fishMarker{position:absolute;top:-2px;bottom:-2px;width:5px;margin-left:-2px;background:var(--snow);box-shadow:0 0 6px #fff}
+.hint{font-size:12.5px;color:var(--frost);margin-top:10px}
+#touch{position:absolute;inset:0;pointer-events:none}
+#stick{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(243,247,251,.35);background:rgba(10,22,18,.25)}
+#knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(243,247,251,.55)}
+#bA{position:absolute;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 28px);width:72px;height:72px;border-radius:50%;font:600 24px var(--ui);color:var(--ink);background:var(--gold);border:3px solid #fff3c9;pointer-events:auto}
+#fade{position:absolute;inset:0;background:var(--night);opacity:0;transition:opacity .6s;display:flex;align-items:center;justify-content:center;padding:16px}
+#fade.show{opacity:1}
+#fadeCard{width:min(420px,100%);padding:22px;box-sizing:border-box;text-align:center}
+#fadeCard h2{font-family:var(--display);font-size:38px;margin:4px 0;color:var(--gold);font-weight:700}
+#fadeCard p{margin:8px 0;line-height:1.5}
+#title{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 7vh);box-sizing:border-box;background:linear-gradient(180deg,rgba(13,27,38,0) 30%,rgba(13,27,38,.85) 85%)}
+.title-inner{max-width:560px;text-align:center}
+.eyebrow{letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--frost);margin:0}
+#title h1{font-family:var(--display);font-weight:700;font-size:clamp(54px,11vw,104px);line-height:.95;margin:6px 0 10px;color:var(--gold);text-shadow:0 3px 0 #7a3a1e,0 0 30px rgba(242,195,91,.45);text-wrap:balance}
+.lede{font-size:16px;line-height:1.5;margin:0 auto 18px;max-width:46ch}
+.title-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.title-btns .btn{font-size:17px;padding:12px 22px}
+.controls{font-size:12.5px;color:var(--frost);margin-top:14px}
+#banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,calc(100% - 32px));padding:22px;box-sizing:border-box;text-align:center}
+#banner h2{font-family:var(--display);font-size:52px;line-height:1;margin:4px 0 8px;color:var(--gold);font-weight:700}
+#banner p{line-height:1.5;margin:8px 0}
+#wishIn{width:100%;box-sizing:border-box;font:500 15px var(--ui);padding:10px 12px;border-radius:10px;border:2px solid rgba(242,195,91,.5);background:rgba(0,0,0,.3);color:var(--snow);margin:8px 0 12px;-webkit-user-select:text;user-select:text}
+@media (max-width:560px){
+  #hudTime{font-size:17px} #hudCount{font-size:11px} .hud-card{padding:6px 10px}
+  #topbtns .btn{padding:8px 9px;font-size:13px}
+  #hud{flex-direction:column;gap:6px}
+  #dialog{gap:10px;padding:12px} #portrait{width:54px;height:54px} #dlgText{font-size:15px}
+}
+body.decor #toasts{bottom:calc(env(safe-area-inset-bottom,0px) + 250px)}
+#hudTask{font-size:12px;color:var(--gold);margin-top:3px;max-width:30ch}
+.ico{object-fit:contain}
+#topbtns{flex-wrap:wrap;justify-content:flex-end;max-width:62%}
+#tray{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:min(760px,calc(100% - 24px));box-sizing:border-box;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tray-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tray-items{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.tray-items .slot{min-width:78px;flex:none}
+.tray-vars{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{display:inline-flex;align-items:center;gap:6px;font:500 12.5px var(--ui);color:var(--snow);background:rgba(255,255,255,.06);border:1.5px solid rgba(159,192,214,.3);border-radius:999px;padding:5px 10px 5px 5px;cursor:pointer}
+.swatch i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.4)}
+.swatch.on{border-color:var(--gold);background:rgba(242,195,91,.15)}
+.tray-hint{font-size:12.5px;color:var(--frost)}
+.task{display:flex;gap:10px;align-items:center;padding:4px 0;font-size:14px}
+.task .box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(242,195,91,.6);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink);flex:none}
+.task.done .box{background:var(--gold)}
+.task.done .grow{color:var(--frost);text-decoration:line-through}
+.task .grow{flex:1}
+@media (max-width:560px){#hudTask{display:none}#tray .slot{min-width:68px}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}#fade{transition:none}}
+</style>
+<div id="game">
+  <canvas id="c"></canvas>
+  <div id="prompt" hidden></div>
+  <div id="hud" hidden>
+    <div class="hud-card panel"><div id="hudDate"></div><div id="hudTime"></div><div id="hudCount"></div><div id="hudTask" hidden></div></div>
+    <div class="hud-coins panel"><img id="coinIco" class="ico sm" alt=""><span id="hudCoins">0</span></div>
+  </div>
+  <div id="topbtns" hidden>
+    <button class="btn" id="bBag">Bag</button>
+    <button class="btn" id="bDecor">Decorate</button>
+    <button class="btn" id="bJournal">Journal</button>
+    <button class="btn" id="bSound" aria-label="Toggle music">Music</button>
+    <button class="btn" id="bHelp" aria-label="Help">?</button>
+  </div>
+  <div id="toasts"></div>
+  <div id="tray" class="panel" hidden></div>
+  <div id="touch" hidden><div id="stick" hidden><div id="knob"></div></div><button id="bA" aria-label="Interact">A</button></div>
+  <div id="dialog" class="panel" hidden>
+    <canvas id="portrait" width="18" height="18"></canvas>
+    <div class="dlg-body"><div id="dlgName"></div><div id="dlgText"></div><div id="dlgOpts"></div></div>
+  </div>
+  <div id="fish" class="panel" hidden>
+    <div id="fishTitle" style="color:var(--frost);font-size:13px;letter-spacing:.1em;text-transform:uppercase">Ice fishing</div>
+    <div id="fishMsg"></div>
+    <div class="fbar"><div id="fishZone"></div><div id="fishMarker"></div></div>
+    <div class="hint" id="fishHint">Wait for the bite, then press E, Space or tap.</div>
+  </div>
+  <div id="modalWrap" hidden><div id="modal" class="panel"><div class="knit"></div><header><h2 id="mTitle"></h2><button class="btn" id="mClose">Close</button></header><div id="mBody"></div></div></div>
+  <div id="banner" class="panel" hidden></div>
+  <div id="fade" hidden><div id="fadeCard" class="panel" hidden></div></div>
+  <div id="title">
+    <div class="title-inner">
+      <p class="eyebrow">December in a snowed-in village</p>
+      <h1>Lantern Hollow</h1>
+      <p class="lede">Forage under the pines, fish the frozen pond, bake for your neighbors and make your cabin cozy. Welcome travelers who might stay. On the 24th, the whole hollow lights the great tree together.</p>
+      <div class="title-btns"><button class="btn primary" id="tContinue" hidden>Continue</button><button class="btn primary" id="tNew">New game</button></div>
+      <p class="controls">WASD or arrows to walk, Shift to run · E to interact · F to decorate · B bag · J journal. On a phone, drag the left side to walk and tap A.</p>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+const TILE=16,W=48,H=36,MAPW=W*TILE,MAPH=H*TILE;
+const MIN_SEC=0.42,DAY_START=420,PASS_OUT=1560,FEST_TIME=1020,TREE_GOAL=30,BEDTIME=1320;
+const SAVE_KEY='lantern-hollow-save-v1',PREF_KEY='lantern-hollow-prefs';
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const rnd=Math.random,ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)),pick=a=>a[Math.floor(rnd()*a.length)];
+function hash2(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263))|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,s=t=>t*t*(3-2*t);
+  const a=hash2(xi,yi),b=hash2(xi+1,yi),c=hash2(xi,yi+1),d=hash2(xi+1,yi+1),u=s(xf),v=s(yf);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mk(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---------- COLOR VARIANTS (decor restyling)
+const VARS={
+  red:{A:'#cf3d4f',a:'#9a2a3b',B:'#f2c35b',n:'Cranberry'},green:{A:'#3f8f5a',a:'#2a6640',B:'#f4f7fb',n:'Pine'},
+  gold:{A:'#f2c35b',a:'#c58a2a',B:'#cf3d4f',n:'Gold'},blue:{A:'#4f86c6',a:'#335f94',B:'#f4f7fb',n:'Frost blue'},
+  white:{A:'#eef3f8',a:'#bfcbd8',B:'#cf3d4f',n:'Snow white'},plum:{A:'#8a4f9e',a:'#62357a',B:'#f2c35b',n:'Plum'},
+  pink:{A:'#ec8fb0',a:'#c0607f',B:'#f4f7fb',n:'Rose'},wood:{A:'#9a6a3f',a:'#6e4728',B:'#f2c35b',n:'Oak'},
+  dark:{A:'#3d434f',a:'#262a33',B:'#f2c35b',n:'Iron'},teal:{A:'#3f9a96',a:'#2a6e6b',B:'#f4f7fb',n:'Teal'}
+};
+
+// ---------- DECOR (placeable, movable, restylable)
+// where: out | in | both | wall · w,h: footprint tiles · solid · layer 'floor' draws under · light [radius,"r,g,b"] · act · store:false = move only
+const DECOR={
+  snowman:{where:'out',solid:1,vars:['red','blue','green','gold','plum']},
+  lantern:{where:'both',solid:1,light:[38,'255,140,90'],vars:['red','gold','blue','green']},
+  lamp:{where:'out',solid:1,light:[52,'255,200,120'],vars:['dark','green','gold']},
+  bench:{where:'out',solid:1,act:'sit',vars:['wood','red','green','white']},
+  sled:{where:'out',solid:1,vars:['red','blue','green']},
+  candycane:{where:'both',solid:1,vars:['red','green','blue']},
+  fence:{where:'out',solid:1,vars:['white','wood','red']},
+  sapling:{where:'out',solid:1,vars:['green','red','gold','blue'],varNames:['Plain','Red bulbs','Gold bulbs','Blue bulbs']},
+  icesculpt:{where:'both',solid:1,vars:['blue','teal','white'],varNames:['Star','Swan','Fish']},
+  giftstack:{where:'both',solid:1,vars:['red','green','gold','blue','plum']},
+  reindeer:{where:'out',solid:1,vars:['red','green','gold']},
+  firepit:{where:'out',solid:1,act:'warm',light:[46,'255,150,80'],vars:['dark','white']},
+  poinsettia:{where:'both',solid:1,vars:['red','white','pink']},
+  bed:{where:'in',solid:1,w:2,act:'sleep',vars:['red','blue','green','plum'],store:0},
+  rug:{where:'in',layer:'floor',w:3,h:2,vars:['red','green','blue','gold','plum']},
+  armchair:{where:'in',solid:1,act:'sit',vars:['red','green','blue','plum']},
+  table:{where:'both',solid:1,vars:['wood','white','dark']},
+  chair:{where:'in',solid:1,act:'sit',vars:['wood','white','red']},
+  bookshelf:{where:'in',solid:1,vars:['wood','dark','white']},
+  hearth:{where:'in',solid:1,w:2,act:'warm',light:[60,'255,150,80'],vars:['red','dark','white'],varNames:['Brick','Fieldstone','Plaster']},
+  stocking:{where:'wall',vars:['red','green','blue','gold']},
+  painting:{where:'wall',vars:['blue','green','gold','plum'],varNames:['The pond','The great tree','Winter moon','Bakehouse']},
+  snowglobe:{where:'in',solid:1,vars:['green','red','blue'],varNames:['Little pine','Tiny cabin','Snowman']},
+  musicbox:{where:'in',solid:1,act:'music',vars:['red','blue','gold']},
+  train:{where:'in',solid:1,vars:['red','green','blue']},
+  ginghouse:{where:'both',solid:1,vars:['white','pink','blue']},
+  candles:{where:'both',solid:1,light:[30,'255,190,110'],vars:['white','red','gold']},
+  wreath:{where:'wall',vars:['red','gold','blue','white']},
+  garland:{where:'wall',vars:['red','gold','white']},
+  fairy:{where:'wall',light:[26,'255,220,160'],vars:['red','gold','blue']},
+  clock:{where:'wall',act:'clock',vars:['wood','red','green']},
+  bells:{where:'wall',act:'bells',vars:['red','green']},
+  mailbox:{where:'out',solid:1,act:'mail',vars:['red','blue','green'],store:0},
+  workbench:{where:'out',solid:1,act:'craft',vars:['wood'],store:0},
+  oven:{where:'out',solid:1,act:'bake',light:[28,'255,150,80'],vars:['red','dark'],store:0},
+  counter:{where:'in',solid:1,w:2,vars:['wood','white','dark'],store:0}
+};
+const WALLPAPERS=[['stripe','red','Cranberry Stripe'],['plaid','green','Pine Plaid'],['snowflake','blue','Snowflake Blue'],['dots','gold','Golden Dot'],['plank','wood','Cabin Plank'],['stripe','plum','Plum Stripe'],['dots','pink','Rosy Dot']];
+const FLOORS=[['oak','Oak Boards'],['cherry','Cherry Boards'],['checker','Checker Tile'],['stone','Fieldstone']];
+
+// ---------- ITEMS
+const ITEMS={
+  pinecone:{name:'Pinecone',price:4,desc:'Fell from one of the old pines. Smells like the whole forest.'},
+  holly:{name:'Holly Sprig',price:6,desc:'Glossy leaves, bright berries. Prickly but festive.'},
+  snowberry:{name:'Snowberries',price:5,desc:'Pale berries that taste like cold sugar.'},
+  chestnut:{name:'Chestnut',price:6,desc:'Drops from the old trees in the east woods. Begging to be roasted.'},
+  mistletoe:{name:'Mistletoe',price:28,desc:'A rare sprig that drops from the oldest pines.'},
+  wood:{name:'Branch',price:3,desc:'A sturdy branch. Good for crafts, furniture and snowman arms.'},
+  snowball:{name:'Snowball',price:1,desc:'Perfectly packed. Three of these make a snowman.'},
+  ice:{name:'Ice Shard',price:7,desc:'Clear as glass. Shows up in snowdrifts and fishing holes.'},
+  ribbon:{name:'Ribbon Spool',price:4,desc:'Velvet ribbon from Bramble & Co.'},
+  pantry:{name:'Pantry Goods',price:5,desc:'Flour, sugar and spice from Bramble & Co.'},
+  minnow:{name:'Ice Minnow',price:8,fish:1,desc:'A tiny silver fish. Pip calls them pond confetti.'},
+  perch:{name:'Snow Perch',price:12,fish:1,desc:'Striped like a candy cane, if you squint.'},
+  trout:{name:'Silver Trout',price:18,fish:1,desc:'Shimmers like a frosted spoon.'},
+  char:{name:'Arctic Char',price:28,fish:1,desc:'Pink-bellied and proud of it.'},
+  pike:{name:'Frost Pike',price:36,fish:1,desc:'Long, toothy, and grumpy about the cold.'},
+  carp:{name:'Golden Carp',price:95,fish:1,desc:'Only rises after dark. Very lucky.'},
+  mitten:{name:'Lost Mitten',price:2,desc:'A small red mitten, frozen stiff. Someone must be missing it.'},
+  antique:{name:'Sunken Bauble',price:60,tree:3,desc:'An old glass ornament from the bottom of the pond. Worth 3 lights on the great tree.'},
+  ornament:{name:'Pinecone Ornament',price:22,tree:1,desc:'A pinecone dipped in berry paint. Worth 1 light on the great tree.'},
+  bauble:{name:'Glass Bauble',price:25,tree:2,desc:"Birch's hand-blown glass. Worth 2 lights on the great tree."},
+  garland:{name:'Berry Garland',price:30,tree:2,desc:'Snowberries strung along a twig. Hang it on the great tree (2 lights) or a wall at home.'},
+  wreath:{name:'Holly Wreath',price:42,tree:3,desc:'Holly woven in a ring. Hang it on the great tree (3 lights) or a wall at home.'},
+  cocoa:{name:'Mug of Cocoa',price:18,food:1,desc:'Thick, sweet, and still steaming.'},
+  ginger:{name:'Gingerbread Pal',price:34,food:1,desc:'A gingerbread friend with an icing smile.'},
+  roast:{name:'Roasted Chestnuts',price:24,food:1,desc:'Hot, smoky, and impossible to share.'},
+  cider:{name:'Mulled Cider',price:30,food:1,desc:"Hazel's recipe. Spiced and warming."},
+  tart:{name:'Snowberry Tart',price:40,food:1,desc:"Maple's recipe. Sweet, sharp, a little sparkly."},
+  cookie:{name:'Pine-nut Cookies',price:30,food:1,desc:'Buttery cookies with toasted pine nuts.'},
+  pie:{name:'Trout Pie',price:58,food:1,desc:'Pip swears by it. Flaky crust, hearty filling.'},
+  chowder:{name:'Char Chowder',price:75,food:1,desc:'Creamy, peppery, and very orange.'},
+  wallpaper:{name:'Wallpaper Roll',price:20,special:'wall',desc:'Choose a pattern when you apply it in your cabin.'},
+  flooring:{name:'Flooring Bundle',price:20,special:'floor',desc:'Choose a floor when you apply it in your cabin.'},
+  snowman:{name:'Snowman',price:0,desc:'Assembled and ready to stand somewhere nice. Clementine keeps count.'},
+  lantern:{name:'Paper Lantern',price:20,desc:'A paper lantern on a post. Glows warm at night.'},
+  lamp:{name:'Street Lamp',price:40,desc:'An iron lamp post. Lights up the path after dusk.'},
+  bench:{name:'Park Bench',price:30,desc:'For sitting and watching the snow.'},
+  sled:{name:'Wooden Sled',price:30,desc:'Freshly waxed. Mostly decorative.'},
+  candycane:{name:'Candy Cane Post',price:14,desc:'A striped post. Nice for lining a path.'},
+  fence:{name:'Picket Fence',price:8,desc:'One section of fence. Snow sold separately.'},
+  sapling:{name:'Pine Sapling',price:15,desc:'Plant it anywhere outside. Some come pre-decorated.'},
+  icesculpt:{name:'Ice Sculpture',price:45,desc:'Carved from pond ice. Choose a star, swan or fish.'},
+  giftstack:{name:'Gift Stack',price:30,desc:'Empty boxes, beautifully wrapped. Nobody needs to know.'},
+  reindeer:{name:'Straw Reindeer',price:28,desc:'Woven from straw and tied with ribbon.'},
+  firepit:{name:'Fire Pit',price:40,desc:'A ring of stones and a crackling fire. Glows at night.'},
+  poinsettia:{name:'Poinsettia',price:22,desc:'A potted winter bloom.'},
+  bed:{name:'Quilted Bed',price:60,desc:'A soft bed with a patchwork quilt.'},
+  rug:{name:'Knit Rug',price:35,desc:'A big oval rug. Furniture can sit on top of it.'},
+  armchair:{name:'Armchair',price:45,desc:'Deep, squashy and perfect by a fire.'},
+  table:{name:'Little Table',price:20,desc:'A small round table.'},
+  chair:{name:'Wooden Chair',price:14,desc:'A sturdy spindle-back chair.'},
+  bookshelf:{name:'Bookshelf',price:40,desc:'Full of almanacs and winter stories.'},
+  hearth:{name:'Hearth',price:80,desc:'A fireplace. The heart of any cabin.'},
+  stocking:{name:'Knit Stocking',price:18,desc:'Hang it on a wall at home.'},
+  painting:{name:'Painting',price:50,desc:"One of Wren's winter scenes. Hang it on a wall."},
+  snowglobe:{name:'Snow Globe',price:45,desc:'Shake it gently. Tamsin insists it is weatherproof.'},
+  musicbox:{name:'Music Box',price:55,desc:"Plays Hazel's favorite tune when you open it."},
+  train:{name:'Toy Train',price:50,desc:'A wind-up engine that chugs in place.'},
+  ginghouse:{name:'Gingerbread House',price:70,desc:'Too pretty to eat. Mostly.'},
+  candles:{name:'Candle Cluster',price:16,desc:'Three candles of different heights. Warm glow.'},
+  fairy:{name:'Fairy Lights',price:30,desc:'A strand of tiny bulbs for a wall.'},
+  clock:{name:'Cuckoo Clock',price:50,desc:'Tells the time and has opinions about it.'},
+  bells:{name:'Sleigh Bells',price:24,desc:'Hang them on a wall. Give them a shake.'},
+  mailbox:{name:'Mailbox',price:0,desc:''},workbench:{name:'Workbench',price:0,desc:''},oven:{name:'Brick Oven',price:0,desc:''},counter:{name:'Counter',price:0,desc:''},
+  roofLights:{name:'Cabin Roof Lights',price:0,desc:'Colored bulbs strung along your cabin roof.'},
+  rod:{name:'Sturdy Rod',price:0,desc:'A wider catch zone when you reel in.'},
+  axe:{name:'Hand Axe',price:0,desc:'Chop pines in the village for branches. Plant saplings to replace them.'},
+  ticket:{name:'Sled Ticket',price:0,desc:'One sled ride across the frozen sea to a mystery island. Talk to Pip at the pond.'},
+  coin:{name:'Coins',price:0,desc:''}
+};
+const RECIPES={
+  ornament:{at:'bench',needs:{pinecone:2,snowberry:1}},garland:{at:'bench',needs:{snowberry:3,wood:1}},
+  wreath:{at:'bench',needs:{holly:4,pinecone:1}},snowman:{at:'bench',needs:{snowball:3,wood:2}},
+  fence:{at:'bench',needs:{wood:2}},table:{at:'bench',needs:{wood:4}},chair:{at:'bench',needs:{wood:3}},
+  candles:{at:'bench',needs:{pantry:1,ribbon:1}},reindeer:{at:'bench',needs:{wood:3,holly:1}},
+  candycane:{at:'bench',needs:{wood:2,ribbon:1},teach:'Wren, a traveling painter, knows this one.'},
+  giftstack:{at:'bench',needs:{ribbon:2,wood:1},teach:'Birch, a traveling peddler, knows this one.'},
+  icesculpt:{at:'bench',needs:{ice:3,snowball:2},teach:'Tamsin, a traveling tinkerer, knows this one.'},
+  firepit:{at:'bench',needs:{wood:5},teach:'Bruno, a traveling woodcutter, knows this one.'},
+  stocking:{at:'bench',needs:{ribbon:2,snowberry:2},teach:'Mochi, a traveling knitter, knows this one.'},
+  cocoa:{at:'oven',needs:{pantry:1}},ginger:{at:'oven',needs:{pantry:2}},roast:{at:'oven',needs:{chestnut:3}},
+  cider:{at:'oven',needs:{pantry:1,snowberry:1,chestnut:1},teach:'Hazel, a traveling carol singer, knows this one.'},
+  tart:{at:'oven',needs:{pantry:1,snowberry:2},teach:'Maple might share this one.'},
+  cookie:{at:'oven',needs:{pantry:1,pinecone:2},teach:'Maple guards this one closely.'},
+  ginghouse:{at:'oven',needs:{ginger:2,pantry:1},teach:"Clementine's family recipe."},
+  pie:{at:'oven',needs:{pantry:1,trout:1},teach:"Pip's family recipe."},
+  chowder:{at:'oven',needs:{pantry:1,char:1},teach:'Pip saves this one for close friends.'}
+};
+const START_RECIPES=['ornament','garland','wreath','snowman','fence','table','chair','candles','reindeer','cocoa','ginger','roast'];
+
+// ---------- CHARACTERS
+// sched: [start,end,scene,[tx,ty]] · outside every slot they are home until bedtime (22:00), then asleep
+const BASE_IDS=['maple','bram','juniper','pip','clem'];
+const VISITOR_IDS=['birch','hazel','tamsin','bruno','wren','mochi'];
+const ALL_IDS=[...BASE_IDS,...VISITOR_IDS];
+const VDEF={
+  maple:{name:'Maple',role:'Baker',home:'bakery',sched:[[450,690,'bakery',[4,2]],[690,1140,'village',[37,9]]],
+    loves:['tart','snowberry','cookie'],likes:['cocoa','ginger','holly','pie','pantry','cider'],
+    intro:"Oh! You must be the one in the old cabin. I'm Maple, I run the bakehouse. Your yard has a brick oven, you know. Bring me snowberries sometime and I'll show you what they're for.",
+    lines:[["Mind the ice by the pond. Pip slides on it on purpose, the rascal.","If you find snowberries, bring them by. They make the tartest tarts.","Mornings I'm at my counter. Afternoons I'm out stretching my legs."],
+      ["There's my favorite neighbor! Flour on your scarf again. It suits you.","I tested a gingerbread recipe all morning. The gingerbread has been testing me back.","Bram pretends he doesn't eat my cookies. The crumbs on his vest say otherwise."],
+      ["Whenever the kitchen gets too quiet, I hope you'll wander by.","The hollow feels cozier since you came. I mean that, dear."]],
+    heavy:"What a flurry! Come in from the cold soon, won't you?",night:"Out late? There's always a lamp in my window.",
+    soon:"Lantern Night is close! I'm baking spare cookies for the whole square.",after:"The great tree still glows every evening. I walk past it twice, just to look.",
+    again:["Back already? Good. The oven missed you.","Don't let me keep you. The snow won't forage itself."],home:"Come in, come in! Mind the flour.",
+    love:"Oh, my! This is exactly what I needed. You darling!",like:"How thoughtful. This will go to good use.",ok:"Thank you, dear. Every little thing helps.",decorGift:"I know just the spot for it!"},
+  bram:{name:'Bram',role:'Shopkeeper',home:'store',sched:[[480,1200,'store',[5,2]]],
+    loves:['cookie','cocoa','mistletoe'],likes:['wood','pinecone','ginger','pike','tart','roast'],
+    shop:[{id:'pantry',price:10},{id:'ribbon',price:8},{id:'lantern',price:60},{id:'lamp',price:120},{id:'wallpaper',price:80},{id:'flooring',price:80},
+      {id:'roofLights',price:250,once:'cabinLights'},{id:'rod',price:180,once:'sturdy',need:'hasRod'},{id:'axe',price:120,once:'hasAxe'},{id:'ticket',price:80}],
+    intro:"Bramble and Company. Pantry goods, ribbon, lanterns, lamp posts, wallpaper. I count everything twice. I'll buy most anything you find, too.",
+    lines:[["Hmph. Cold one. Good for business.","Pinecones again? I'll buy them. Don't ask what I do with them.","Shop's open eight to eight. I live upstairs, so knock gently after."],
+      ["Inventory balanced to the coin today. Must be your doing.","You haggle about as well as a snowdrift. I respect that.","Visitors come up the ridge road most days. Good for trade."],
+      ["Don't tell the others, but I hum carols while I restock.","Good company is rarer than golden carp. You're good company."]],
+    heavy:"Heavy snow. Paths need shoveling. Not by me.",night:"Closing time. Or past it. I lose track.",
+    soon:"Lanterns are flying off the shelf. Well. Off the one shelf.",after:"Sold out of lanterns for the first time in years. Felt nice. Don't tell anyone.",
+    again:["Still here? Browse, then.","Mm. Need something else?"],home:"Shop's that way. So is the door.",
+    love:"...Hm. That's. That's very good. Thank you.",like:"Fair trade. Better than fair. Thanks.",ok:"I'll find a shelf for it.",decorGift:"Hm. I'll put it where customers can see it."},
+  juniper:{name:'Juniper',role:'Postmistress',home:'post',sched:[[420,1080,'village',[18,9]]],
+    loves:['wreath','mistletoe','tart'],likes:['holly','ornament','garland','cocoa','painting','bells'],
+    intro:"Juniper, Lantern Hollow Post. I fly a letter to your mailbox every morning, wind permitting. Neighbors pin requests on the wish board beside my office. Fill a few and you'll be famous by Friday.",
+    lines:[["Hoo. Forgive me. Up late sorting cards.","The wish board refreshes every morning. Small wishes, but they matter.","Mistletoe drops from the old pines now and then. Keep your eyes up and down."],
+      ["Every letter in the hollow passes through my wings. Yours are the most polite.","Clementine mailed a snowman drawing to the moon. I filed it under 'pending'."],
+      ["I keep a drawer of letters I've written and never sent. One might be to you.","You've made the whole route feel shorter."]],
+    heavy:"Flying in this weather is like swimming in sugar.",night:"The stars are sharp tonight. Good flying.",
+    soon:"Every lantern that rises carries a wish. Have you chosen yours?",after:"I still have the soot of a lantern on one wing. I'm not washing it.",
+    again:["Anything to post? No? Then good day.","Hoo. Still here, still sorting."],home:"Welcome to the post office. Mind the parcels.",
+    love:"Oh! Oh, this is lovely. It's going right on my perch.",like:"How kind. I'll mention it in my next letter to you.",ok:"Thank you. Duly received.",decorGift:"I'll display it by the sorting desk."},
+  pip:{name:'Pip',role:'Ice fisher',home:'igloo',sched:[[420,1260,'village',[11,24]]],
+    loves:['pie','carp','cocoa','chowder'],likes:['minnow','trout','pike','snowball','perch','char'],
+    intro:"Yo! Pip. Ice fisher, pond sitter, champion slider. Try running across the ice, you'll glide. Hey, you don't have a rod, do you?",
+    lines:[["Fish bite better in the evening. Golden carp only come up after dark.","Run across the ice. You'll slide. It's the best.","Sometimes old stuff comes up from the bottom. Baubles, mittens. Keep casting."],
+      ["Caught a minnow that looked exactly like Bram. Threw it back out of respect.","You're getting good at this. Like, suspiciously good."],
+      ["You're the only one who sits out here with me. Means a lot, bud.","Someday I'll catch the carp king. You'll be there, right?"]],
+    heavy:"Snow's thick today. Fish love it. Probably.",night:"Night shift. This is when the carp come out.",
+    soon:"I'm watching the lanterns from the ice. Best seat in the hollow.",after:"Saw a lantern reflected in the ice the whole way up. Unreal.",
+    again:["Shh. You'll scare the fish. Kidding. Hi.","Cast a line, bud. The water's warm. Kidding again."],home:"Welcome to the igloo! Shoes on, it's ice anyway.",
+    love:"NO WAY. For me? You're the best, bud!",like:"Oh nice, thanks! Into the cooler it goes.",ok:"Heh, thanks.",decorGift:"Whoa. That's going right by my bed."},
+  clem:{name:'Clementine',role:'Snowman enthusiast',home:'den',sched:[[480,1080,'village',[24,21]]],
+    loves:['ginger','mitten','snowball','ginghouse'],likes:['cookie','snowberry','ornament','tart','cocoa','train','snowglobe'],
+    intro:"Hi! I'm Clementine! I'm going to fill the whole hollow with snowmen. You can help! Three snowballs and two branches at your workbench. Then put it somewhere good with Decorate.",
+    lines:[["Did you know snowmen need arms? Branches work great.","I lost my favorite mitten. It was red. And a mitten. Maybe it fell in the pond?","Mom says I can stay out until the lamps come on. They come on SO early."],
+      ["Snowman count report! Carry on.","Pip says he's the best at sliding. I'm better. Don't tell him."],
+      ["You're my best grown-up friend. Don't tell Pip, he thinks he is.","When I grow up I want to be a snowman. Or you."]],
+    heavy:"SNOW DAY! Best snowman weather ever!",night:"I'm not sleepy. I'm not. Okay a little.",
+    soon:"Is it Lantern Night yet? Is it NOW?",after:"I made a wish on my lantern. It was about snowmen. Obviously.",
+    again:["Did you build another snowman yet?","Hi again! Hi!"],home:"Welcome to my room! Don't touch the train. Okay you can touch it.",
+    love:"WOW! This is the best present in the entire world!",like:"Ooh, thank you!",ok:"Thanks! I'll keep it in my secret box.",decorGift:"It's going in my room RIGHT NOW."},
+  birch:{name:'Birch',role:'Traveling peddler',visitor:1,teach:'giftstack',
+    style:{style:'log',wall:'#7d8a99',dark:'#5d6876',roof:'#3e5f45',door:'#3a2a20',sign:'#f2c35b'},room:['plank','wood','oak'],
+    shop:[{id:'bauble',price:40},{id:'poinsettia',price:50},{id:'sled',price:90},{id:'chestnut',price:10},{id:'ribbon',price:6}],
+    loves:['cider','roast','mistletoe'],likes:['chestnut','cocoa','holly','ginger','bauble'],
+    intro:"Birch, peddler of fine and curious goods. I walk the ridge road from village to village all winter. Glass baubles, poinsettias, a sled or two. Have a look.",
+    teachLine:"A trick from the road: two spools of ribbon and a branch make a proper gift stack. Try it at your workbench.",
+    lines:[["The ridge road is quiet this year. Quiet suits me.","Every village I visit has a great tree. Yours has the best view of the stars."],
+      ["I could stay a while, you know. If someone asked nicely.","You'd make a fine peddler. You have the face for bargains."],["You make the hollow feel like the end of a long road. The good kind."]],
+    heavy:"Snowed in? Good. I needed a rest.",night:"The lanterns here burn warmer than anywhere.",soon:"I timed my route for Lantern Night. I always do.",after:"I've seen many lanterns rise. None quite like these.",
+    again:["Something else catch your eye?","Take your time. I'm patient as a pine."],home:"Welcome. It still smells like new wood in here.",
+    love:"Well now. That's the finest thing I've been handed in a hundred miles.",like:"Kind of you. Truly.",ok:"I'll carry it with me.",decorGift:"It'll make this place feel like home.",
+    invite:"Settle down? Here? ...You know, I think I'd like that. I'll have a house up by tomorrow morning.",
+    letter:"Unpacked the last crate today. My knees have never been happier. Here's a little something from the road."},
+  hazel:{name:'Hazel',role:'Carol singer',visitor:1,teach:'cider',
+    style:{style:'brick',wall:'#a98bb8',dark:'#83669a',roof:'#7a2f3a',door:'#4a2c1c',sign:'#f4f7fb'},room:['dots','pink','cherry'],
+    shop:[{id:'musicbox',price:140},{id:'bells',price:70},{id:'candles',price:35},{id:'cider',price:40}],
+    loves:['cider','cookie','bells'],likes:['tart','snowberry','cocoa','ornament','musicbox'],
+    intro:"Hello, hello! I'm Hazel. I sing carols door to door, and sometimes the doors sing back. Would you like a music box? They play my favorite tune.",
+    teachLine:"Here, my mulled cider recipe. Pantry goods, snowberries and a chestnut. Sing while it simmers. That part is important.",
+    lines:[["La la laaa. Sorry, warming up.","Your square has wonderful echoes. I could sing here all day."],["Do you have a favorite carol? I'll learn it.","I wrote a verse about your cabin. It rhymes with 'kitten'. Don't ask."],["You're my favorite audience. You clap at the right parts."]],
+    heavy:"Snow makes everything sound softer. Perfect for ballads.",night:"Evening is for lullabies.",soon:"I'm leading the carols on Lantern Night!",after:"My voice is gone. Worth it.",
+    again:["Another song? Another time!","Hum along if you like."],home:"Welcome! Please excuse the sheet music. It's everywhere.",
+    love:"Oh! You've made me want to sing. Well, more than usual.",like:"How sweet of you!",ok:"Thank you, dear.",decorGift:"It'll sit right by my piano. I don't have a piano. Yet.",
+    invite:"Live here? With these echoes? Yes! A thousand times yes. Well, once is enough. Tomorrow!",
+    letter:"I sang to my new walls this morning. They sang back. Enclosed: a little something warm."},
+  tamsin:{name:'Tamsin',role:'Tinkerer',visitor:1,teach:'icesculpt',
+    style:{style:'board',wall:'#3f9a96',dark:'#2a6e6b',roof:'#5a3a2a',door:'#2c3c55',sign:'#f2c35b'},room:['plank','teal','stone'],
+    shop:[{id:'snowglobe',price:120},{id:'train',price:150},{id:'fairy',price:80},{id:'clock',price:130}],
+    loves:['ice','antique','pie'],likes:['wood','minnow','ribbon','cookie','clock'],
+    intro:"Tamsin. Tinkerer. I fix clocks, wind toys, and build snow globes out of mostly legal parts. Want to see?",
+    teachLine:"Three ice shards, two snowballs. Chip chip chip. Ice sculpture. Shards turn up in snowdrifts and fishing holes.",
+    lines:[["Don't touch the gears. Okay, touch one gear.","Your mailbox flag sticks. I could fix that. For a fee. Of one cookie."],["I built a clock that runs backward. It's always tomorrow somewhere."],["You're the only one who asks how things work. I like that."]],
+    heavy:"Cold makes springs stiff. And me.",night:"Best tinkering happens after dark.",soon:"I'm building a lantern that never goes out. Prototype one exploded.",after:"Took notes on every lantern. Fascinating aerodynamics.",
+    again:["Still curious? Good.","Hand me that. No, the other that."],home:"Workshop. Mind the springs on the floor.",
+    love:"Oh, this is EXCELLENT. I'm taking it apart immediately. Lovingly.",like:"Useful. Thanks.",ok:"I'll find a use for it.",decorGift:"I'll put it on the workbench. The clean one."},
+  bruno:{name:'Bruno',role:'Woodcutter',visitor:1,teach:'firepit',
+    style:{style:'log',wall:'#7a5030',dark:'#5a3a26',roof:'#2f5a3c',door:'#3a2a20',sign:'#d99a4e'},room:['plaid','red','oak'],
+    shop:[{id:'sapling',price:40},{id:'bench',price:80},{id:'armchair',price:110},{id:'bookshelf',price:100},{id:'hearth',price:180},{id:'axe',price:100,once:'hasAxe'}],
+    loves:['roast','chowder','pie'],likes:['wood','cocoa','ginger','pinecone','firepit'],
+    intro:"Name's Bruno. I cut wood, I build furniture, I nap. Not always in that order. Need a chair? A hearth? A whole tree?",
+    teachLine:"Five branches in a ring of stones. Light it and you've got a fire pit. Keeps the toes happy.",
+    lines:[["Plant a pine for every one you chop. That's the rule.","Good pines in this hollow. Old ones. Respect them."],["You swing an axe like you mean it. Mostly."],["Fire's warm. Friends are warmer. That's all the wisdom I've got."]],
+    heavy:"Big snow. Good napping snow.",night:"Late? Should be asleep. Bears. You know.",soon:"I'll build the biggest bonfire. Small one. Safe one.",after:"Good night, that was. Good night.",
+    again:["Hm?","Need furniture? Ask."],home:"Sit anywhere. I made all the chairs.",
+    love:"Hrm! That's... that's real good. Thanks, friend.",like:"Good. Thanks.",ok:"Mm. Thanks.",decorGift:"Goes by the fire."},
+  wren:{name:'Wren',role:'Painter',visitor:1,teach:'candycane',
+    style:{style:'board',wall:'#e2c35a',dark:'#b8973a',roof:'#3a5f8f',door:'#4a2c1c',sign:'#cf3d4f'},room:['stripe','blue','cherry'],
+    shop:[{id:'painting',price:120},{id:'wallpaper',price:70},{id:'flooring',price:70},{id:'poinsettia',price:55}],
+    loves:['snowberry','tart','holly'],likes:['cookie','cocoa','ornament','garland','painting'],
+    intro:"Oh! Hello! Wren. I paint winter scenes. Hold still, you'd look lovely in one. I also do wallpaper and floors, if your walls look sad.",
+    teachLine:"A branch, a ribbon, a little patience. Twist it and you've got a candy cane post! Lovely for lining a path.",
+    lines:[["Your hollow has the softest light. I could paint it forever.","Red and white. The only two colors that matter in December."],["I painted your cabin from the hill. You were a tiny dot. A lovely dot."],["You see the world like a painter does. Slowly."]],
+    heavy:"So much white! I'll need more white.",night:"Moonlight on snow is the hardest thing to paint.",soon:"I'm painting Lantern Night. I've started already. It's mostly yellow.",after:"I painted the lanterns. It's my best work. Don't tell the other paintings.",
+    again:["Hold still! Kidding. Mostly.","Back for another look?"],home:"Welcome to the studio. The paint is mostly dry.",
+    love:"Oh! The colors! You've got such an eye!",like:"Lovely, thank you!",ok:"Thank you, sweetly.",decorGift:"I'll hang it where the light is best."},
+  mochi:{name:'Mochi',role:'Knitter',visitor:1,teach:'stocking',
+    style:{style:'plaster',wall:'#f0d6dc',dark:'#a86a7a',roof:'#62357a',door:'#3d2a1d',sign:'#8a4f9e'},room:['plaid','plum','oak'],
+    shop:[{id:'rug',price:90},{id:'stocking',price:45},{id:'bed',price:160},{id:'ribbon',price:6}],
+    loves:['perch','cocoa','ribbon'],likes:['trout','cider','snowberry','stocking','rug'],
+    intro:"Mochi. I knit. Rugs, stockings, quilts, a sweater for a goose once. Sit, look, buy something soft.",
+    teachLine:"Two spools of ribbon and two snowberries for dye. Knit it into a stocking. Hang it on a wall.",
+    lines:[["Purl, knit, purl. Sorry, did you say something?","Wool keeps the cold out. So does a nap."],["I'm knitting you something. It's a surprise. It's a scarf."],["You're cozy company. Like a warm sock."]],
+    heavy:"Heavy snow. Good knitting weather. All weather is knitting weather.",night:"Mm. Bedtime soon. Five more rows.",soon:"I knitted a stocking for every house. Even Bram's.",after:"I knitted a little lantern. It doesn't fly. It's very soft.",
+    again:["Mm?","Something soft for you?"],home:"Come in. Take your boots off. Take a rug.",
+    love:"Oh. Oh my. Purrfect. I'm so sorry, that slipped out.",like:"Mm, nice. Thank you.",ok:"Thank you.",decorGift:"It'll go by my yarn basket."}
+};
+VDEF.birch.invite=VDEF.birch.invite;VDEF.tamsin.invite="Move here? Permanently? I'd need a workshop. ...You have a plot? I'll be unpacked by morning.";
+VDEF.bruno.invite="Stay? Hm. Good pines here. Good people. Yes. House by morning. I build fast.";
+VDEF.wren.invite="A studio in Lantern Hollow? I'd paint every single morning here! I'll move in tomorrow!";
+VDEF.mochi.invite="Mm. A cozy house, near the square? Yes. I'll bring my yarn tomorrow.";
+for(const id of ['tamsin','bruno','wren','mochi'])VDEF[id].letter=VDEF[id].letter||"All moved in! The hollow feels like home already. Here's a little something to say thanks.";
+const REQ_NOTES={maple:["For a recipe I'm testing.","My pantry's running low."],bram:["A customer asked. Don't ask who.","Restocking. Fair price paid."],
+  juniper:["To decorate the post office.","For a care package going over the hills."],pip:["Bait experiments. Very scientific.","Don't ask. Pond stuff."],
+  clem:["For a SECRET project!","It's for a snowman. Obviously."],birch:["For the road ahead."],hazel:["For the choir!"],tamsin:["Parts. For a thing."],
+  bruno:["For a project. A big one."],wren:["For a still life."],mochi:["For dye. Or a snack."]};
+
+// ---------- ROOMS (interiors are 11×10 tiles; door gap at the bottom middle)
+const RW=11,RH=10,RDOOR=[5,9];
+const ROOMS={
+  cabin:{wall:['plank','wood'],floor:'oak',decor:[['bed',1,3,'red'],['hearth',5,2,'red'],['rug',4,5,'red'],['table',8,4,'wood'],['chair',7,4,'wood']]},
+  post:{wall:['stripe','blue'],floor:'oak',decor:[['counter',3,3,'wood'],['bookshelf',1,2,'wood'],['bookshelf',9,2,'wood'],['rug',4,5,'blue'],['table',8,6,'wood'],['chair',7,6,'wood'],['clock',5,1,'wood'],['candles',1,7,'white']]},
+  bakery:{wall:['dots','pink'],floor:'checker',decor:[['counter',3,3,'white'],['hearth',7,2,'red'],['table',2,6,'white'],['chair',1,6,'red'],['chair',3,6,'red'],['ginghouse',9,6,'white'],['garland',4,1,'red'],['candles',1,2,'gold']]},
+  den:{wall:['plaid','red'],floor:'cherry',decor:[['bed',1,3,'blue'],['rug',4,5,'gold'],['train',7,4,'red'],['stocking',4,1,'red'],['stocking',6,1,'green'],['giftstack',9,3,'red'],['snowglobe',9,7,'red']]},
+  store:{wall:['plank','green'],floor:'stone',decor:[['counter',4,3,'wood'],['bookshelf',1,2,'wood'],['bookshelf',9,2,'dark'],['giftstack',8,5,'gold'],['lantern',1,7,'red'],['candles',9,7,'gold'],['clock',5,1,'green']]},
+  igloo:{wall:['ice','blue'],floor:'ice',decor:[['bed',1,3,'blue'],['rug',4,5,'blue'],['lantern',9,2,'blue'],['icesculpt',9,6,'teal'],['chair',7,4,'white']]},
+  _visitor:{decor:[['bed',1,3,'plum'],['rug',4,5,'green'],['table',8,4,'wood'],['chair',7,4,'wood'],['candles',9,7,'white']]}
+};
+const PLOTS=[{x:24,y:4,name:'up on the north lane'},{x:18,y:21,name:'by the south road'},{x:29,y:11,name:'just east of the square'}];
+
+// ---------- MAP
+const TT=new Uint8Array(W*H),SOLID=new Uint8Array(W*H),RES=new Uint8Array(W*H);
+const I=(x,y)=>y*W+x,inMap=(x,y)=>x>=0&&y>=0&&x<W&&y<H,isBorder=(x,y)=>x<3||y<3||x>=W-3||y>=H-3;
+function fillT(x0,y0,x1,y1,t){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(inMap(x,y))TT[I(x,y)]=t;}
+function res(x0,y0,x1,y1){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(inMap(x,y))RES[I(x,y)]=1;}
+function sol(x,y,v=1){if(inMap(x,y))SOLID[I(x,y)]=v;}
+const HOUSES=[
+  {id:'cabin',x:5,y:4,style:'log',wall:'#8a5a36',dark:'#6a4128',roof:'#8e2f3a',door:'#4a2c1c',owner:null,name:'Your cabin'},
+  {id:'post',x:14,y:4,style:'board',wall:'#7c9bb6',dark:'#5f7d98',roof:'#2f4d73',door:'#2c3c55',owner:'juniper',name:'the Post Office',sign:'#f4f7fb'},
+  {id:'bakery',x:34,y:4,style:'plaster',wall:'#ecd3bc',dark:'#8a5a3c',roof:'#b2543f',door:'#6a3b25',owner:'maple',name:"Maple's Bakehouse",sign:'#d99a4e'},
+  {id:'den',x:29,y:21,style:'brick',wall:'#c27448',dark:'#9a5534',roof:'#3e5f45',door:'#4a2c1c',owner:'clem',name:"Clementine's den",sign:'#e07a35'},
+  {id:'store',x:37,y:21,style:'board',wall:'#6a9467',dark:'#4f7650',roof:'#5a3a2a',door:'#3d2a1d',owner:'bram',name:'Bramble & Co.',sign:'#f2c35b'}
+];
+const IGLOO={x:14,y:23};
+const TREE_C={x:400,y:288};
+const HOLES=[[6,24],[9,27],[6,28]];
+const BOARD=[19,7];
+const VILLAGE_DECOR=[['mailbox',10,7,'red'],['workbench',11,7,'wood'],['oven',12,7,'red'],['sled',13,24,'red'],
+  ...[[12,10],[21,10],[42,10],[10,16],[38,16],[21,14],[28,14],[18,27],[27,27],[35,27],[43,27]].map(([x,y])=>['lamp',x,y,'dark']),
+  ['bench',27,20,'wood'],['bench',22,13,'wood'],['bench',13,21,'wood']];
+const TREES=[],BORDER_TREES=[],BUSHES=[],DRIFTS=[],ROCKS=[];
+(function gen(){
+  const rng=mulberry32(1224);
+  fillT(4,8,44,9,1);fillT(4,17,44,18,1);fillT(14,25,44,26,1);fillT(24,10,25,24,1);fillT(7,10,8,16,1);fillT(40,10,41,16,1);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if((x+.5-25)**2+(y+.5-17)**2<4.8*4.8)TT[I(x,y)]=2;
+    if(((x+.5-8.5)/5)**2+((y+.5-26)/4.6)**2<1)TT[I(x,y)]=3;
+    if(isBorder(x,y)){SOLID[I(x,y)]=1;RES[I(x,y)]=1;}
+    if(TT[I(x,y)])RES[I(x,y)]=1;
+  }
+  for(const h of HOUSES){for(let y=h.y;y<h.y+4;y++)for(let x=h.x;x<h.x+5;x++)sol(x,y);res(h.x-1,h.y-2,h.x+5,h.y+4);}
+  for(const p of PLOTS)res(p.x-1,p.y-2,p.x+5,p.y+4);
+  for(let y=IGLOO.y;y<IGLOO.y+2;y++)for(let x=IGLOO.x;x<IGLOO.x+3;x++)sol(x,y);res(IGLOO.x-1,IGLOO.y-1,IGLOO.x+3,IGLOO.y+2);
+  for(let y=16;y<=17;y++)for(let x=24;x<=25;x++)sol(x,y);
+  for(const [x,y] of [...HOLES,BOARD]){sol(x,y);res(x-1,y-1,x+1,y+1);}
+  for(const [,x,y] of VILLAGE_DECOR)res(x-1,y-1,x+1,y+1);
+  for(const id of BASE_IDS){for(const s of VDEF[id].sched)if(s[2]==='village')res(s[3][0],s[3][1],s[3][0],s[3][1]);}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(isBorder(x,y)){if(hash2(x,y)<.8)BORDER_TREES.push({x,y,v:Math.floor(hash2(y,x)*3)});continue;}
+    if(RES[I(x,y)]||SOLID[I(x,y)])continue;
+    const d=Math.min(x-3,W-4-x,y-3,H-4-y);
+    let p=.05+Math.max(0,4-d)*.09;
+    if((x-25)**2+(y-17)**2<49)p=0;
+    if(rng()<p){TREES.push({x,y,v:Math.floor(rng()*3),i:TREES.length});sol(x,y);}
+  }
+  const free=[];
+  for(let y=3;y<H-3;y++)for(let x=3;x<W-3;x++)if(!RES[I(x,y)]&&!SOLID[I(x,y)]&&TT[I(x,y)]===0)free.push([x,y]);
+  for(let i=free.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[free[i],free[j]]=[free[j],free[i]];}
+  let k=0;
+  for(let i=0;i<10;i++){const [x,y]=free[k++];BUSHES.push({x,y,type:'holly'});sol(x,y);}
+  for(let i=0;i<10;i++){const [x,y]=free[k++];BUSHES.push({x,y,type:'snowberry'});sol(x,y);}
+  for(let i=0;i<9;i++){const [x,y]=free[k++];ROCKS.push({x,y});sol(x,y);}
+  for(let i=0;i<14;i++){const [x,y]=free[k++];DRIFTS.push({x,y});}
+})();
+// chestnut trees: the leafier pines in the east woods drop chestnuts
+const CHESTNUT_TREES=TREES.filter(t=>t.x>=30);
+
+// ---------- SCENES & COLLISION
+// scene: 'village' or an interior id (house id, 'igloo', 'plot0'..'plot2')
+const OCC={};
+function occFor(scene){const n=scene==='village'?W*H:RW*RH;if(!OCC[scene]||OCC[scene].length!==n)OCC[scene]=new Uint8Array(n);return OCC[scene];}
+const sceneW=s=>s==='village'?W:RW,sceneH=s=>s==='village'?H:RH;
+function roomWall(x,y){if(x<=0||x>=RW-1||y<=1)return true;if(y>=RH-1)return !(x===RDOOR[0]&&y===RDOOR[1]);return false;}
+function blocked(scene,tx,ty){
+  if(scene==='island')return !ISL.solid||tx<0||ty<0||tx>=ISL.w||ty>=ISL.h||ISL.solid[ty*ISL.w+tx]===1;
+  if(scene==='village'){if(!inMap(tx,ty)||SOLID[I(tx,ty)])return true;return OCC.village&&OCC.village[I(tx,ty)]===1;}
+  if(tx<0||ty<0||tx>=RW||ty>=RH)return true;if(roomWall(tx,ty))return true;const o=OCC[scene];return !!(o&&o[ty*RW+tx]);}
+const tileAt=(px,py)=>{const x=Math.floor(px/TILE),y=Math.floor(py/TILE);return inMap(x,y)?TT[I(x,y)]:0;};
+const solidPx=(sc,px,py)=>blocked(sc,Math.floor(px/TILE),Math.floor(py/TILE));
+const boxFree=(sc,x,y)=>!solidPx(sc,x-5,y-5)&&!solidPx(sc,x+5,y-5)&&!solidPx(sc,x-5,y)&&!solidPx(sc,x+5,y);
+
+// ---------- SPRITES
+function grid(rows,pal,mirror){
+  const R=rows.map(r=>mirror?r+r.split('').reverse().join(''):r);
+  const w=Math.max(...R.map(r=>r.length)),h=R.length,c=mk(w,h),x=c.getContext('2d');
+  R.forEach((row,y)=>{for(let i=0;i<row.length;i++){const col=pal[row[i]];if(col){x.fillStyle=col;x.fillRect(i,y,1,1);}}});
+  return c;
+}
+function outline(src,col='#1c2433'){
+  const c=mk(src.width+2,src.height+2),x=c.getContext('2d'),s=mk(src.width,src.height),sx=s.getContext('2d');
+  sx.drawImage(src,0,0);sx.globalCompositeOperation='source-in';sx.fillStyle=col;sx.fillRect(0,0,s.width,s.height);
+  for(const [dx,dy] of [[0,1],[2,1],[1,0],[1,2]])x.drawImage(s,dx,dy);
+  x.drawImage(src,1,1);return c;
+}
+function flip(src){const c=mk(src.width,src.height),x=c.getContext('2d');x.translate(src.width,0);x.scale(-1,1);x.drawImage(src,0,0);return c;}
+const PP={W:'#f4f7fb',R:'#cf3d4f',r:'#9a2a3b',S:'#f2c7a5',K:'#2a1d1d',p:'#ec8f8f',G:'#3f8f5a',B:'#3b5d8c',b:'#2c4670',D:'#4a2f25',H:'#6b3f2a',M:'#cf3d4f'};
+const PL_DOWN=['........','.......W','......RR','.....RRR','....RrRr','....WWWW','...HSSSS','...HSKSS','...HSpSS','....SSSS','...GGGGG','..BBBBGG','..MBBBBB','...BBBBB','...bbbbb','....DD..'];
+const PL_UP=['........','.......W','......RR','.....RRR','....RrRr','....WWWW','...HHHHH','...HHHHH','...HHHHH','....HHHH','...GGGGG','..BBBBBB','..MBBBBB','...BBBBB','...bbbbb','....DD..'];
+const PL_SIDE=['................','........W.......','......RRRR......','.....RRRRRR.....','....RrRrRrRr....','....WWWWWWWW....','....HHHSSSSS....','....HHHSSSKS....','....HHSSSSpS....','.....HSSSSS.....','....GGGGGGGG....','....BBBBBBGG....','....BBBBBBBG....','....BBBBBMBB....','....bbbbbbbb....','.....DD..DD.....'];
+function walkAlt(rows,m){const r=rows.slice();r[15]=m?'...DD...':'....DD....DD....';return r;}
+const SPR={};
+SPR.down=[outline(grid(PL_DOWN,PP,1)),outline(grid(walkAlt(PL_DOWN,1),PP,1))];
+SPR.up=[outline(grid(PL_UP,PP,1)),outline(grid(walkAlt(PL_UP,1),PP,1))];
+SPR.right=[outline(grid(PL_SIDE,PP)),outline(grid(walkAlt(PL_SIDE,0),PP))];
+SPR.left=SPR.right.map(flip);
+const VGRID={
+  maple:[['A.A.....','AAA.....','.AAAA...','...AMMMM','..EMMMMM','...MKMMM','...MMMMM','...MMLLL','...MLLNL','....LLLL','...WWWWW','..MWWWWW','..MWWRWW','..MWWWWW','...WWWWW','...DD...'],
+    {A:'#d9c39a',M:'#7a4a2e',E:'#6a3e25',K:'#1d1414',L:'#a8774f',N:'#3d2418',W:'#f4efe6',R:'#cf3d4f',D:'#3d2418'}],
+  bram:[['........','........','...EE...','..EGGGWW','..GGGGWW','..GKKGWW','..GKwGWW','..GGGGWW','...GGGWN','....GGGG','..VVVVSS','.GVVVVSS','.GVVVVSS','..VVVVSS','..GGGGGG','...DD...'],
+    {E:'#3a3a42',G:'#8d8f99',W:'#f1f1ee',K:'#1b1b20',w:'#ffffff',N:'#1b1b20',V:'#3f7a4f',S:'#efe2c4',D:'#2b2b30'}],
+  juniper:[['........','....CCCC','...CCCCC','..cccccc','.WWYYWWW','.WYKYWWW','.WWYYWWW','..WWWWWO','..WFWWWW','.WWWWFWW','WWWFWWWW','WWWWWWFW','.WWFWWWW','..WWWWWW','...WWWWW','....OO..'],
+    {C:'#3a5f8f',c:'#2b4a72',W:'#f6f7fb',Y:'#f2c35b',K:'#1b1b20',O:'#e08a3a',F:'#9aa6b8'}],
+  pip:[['.......W','.....RRR','....RRRR','...RRRRR','...KKKKK','..KKWWWW','..KKWKWW','..KKWWWO','..KKKWWW','.KKKWWWW','.KKKWWWW','KKKKWWWW','.KKKWWWW','..KKWWWW','..KKKWWW','...OO...'],
+    {R:'#cf3d4f',W:'#f4f7fb',K:'#20242e',O:'#f2a33a'}],
+  clem:[['..O.....','..OO....','..OoO...','..OOOOOO','..OOOOOO','..OKOOOO','..OOOWWW','...OWWWW','....WWWK','..CCCCCC','..OOCWWW','.OOOOWWW','.OOOOWWW','..OOOWWW','..OOOOOO','...DD...'],
+    {O:'#e07a35',o:'#b85a24',W:'#fbf3ea',K:'#2a1d1d',C:'#4f86c6',D:'#2a1d1d'}],
+  birch:[['........','.A......','.AA.A...','..AAAMMM','..EMMMMM','...MKMMM','...MMMMM','....MLLL','....LLNN','...GGGGG','..CCCGCC','..CCCGCC','.MCCCCCC','..CCCCCC','...CCCCC','...DD...'],
+    {A:'#d9c39a',M:'#9a6a42',E:'#7a4e30',K:'#1d1414',L:'#c9a27a',N:'#2a1d1d',G:'#3f8f5a',C:'#5a7a9a',D:'#3d2418'}],
+  hazel:[['....Wp..','....Wp..','....Wp..','....Ww..','...WWWWW','..WWWWWW','..WKWWWW','..WWWWWn','...WWWWW','...CCCCC','..CCcCCC','..WCCCCC','..CCCCBB','...CCCBB','...ccccc','...DD...'],
+    {W:'#f3eee6',w:'#d8cfc2',p:'#f2a9b8',K:'#1b1b20',n:'#e98fa8',C:'#8a4f9e',c:'#62357a',B:'#f2c35b',D:'#3a2a20'}],
+  tamsin:[['........','..gg....','..gYYGGG','..GGWWWW','..KKKKWW','..KwKKWW','..GKKGWW','...GGWWW','....WWWK','..AAAAAA','.GAAAYAA','.GAAAAAA','..AAAAAA','..GGGGGG','..GGGGGG','...DD...'],
+    {g:'#6c6e78',G:'#8d8f99',W:'#f1f1ee',K:'#1b1b20',w:'#ffffff',Y:'#f2c35b',A:'#8a5a35',D:'#2b2b30'}],
+  bruno:[['........','..bb....','..bBBBBB','..BBBBBB','..BKBBBB','..BBBBLL','..BBBLLN','...BBLLL','..RRrRRR','.RRRrRRR','BRRRrRRR','BRrRrRrR','.RRRrRRR','.RRRrRRR','..bbbbbb','..DD....'],
+    {b:'#5e3820',B:'#7a4a2e',K:'#1d1414',L:'#c49a6c',N:'#1d1414',R:'#b8323f',r:'#7a1f2a',D:'#3a2a20'}],
+  wren:[['........','...CCC..','..CCCCCC','...HHHHH','..HHHHHH','..HKHHHH','..HHHHHY','..HOOOOO','.WOOoooO','.WOOoooo','WWOOoooo','.WOOOooo','..WOOOOO','...HHHHH','....HHHH','....D...'],
+    {C:'#3a5f8f',H:'#8a5a36',K:'#1b1b20',Y:'#f2c35b',O:'#e0683a',o:'#f2a06a',W:'#6a4128',D:'#3a2a20'}],
+  mochi:[['........','..OO....','..OpO...','..OOOWWW','..OOWWWW','..WKWWWW','..WWWWWW','...WWWWp','....WWWW','..GGGGGG','.GGgGGGG','.GGGgGGG','WGGGGgGG','..GGGGGG','..gggggg','...DD...'],
+    {O:'#e7a35a',W:'#fbf3ea',K:'#2a1d1d',p:'#f2a9b8',G:'#4f8f6a',g:'#386b4e',D:'#2a1d1d'}]
+};
+const VSPR={};for(const id of ALL_IDS)VSPR[id]=outline(grid(VGRID[id][0],VGRID[id][1],1));
+
+// resource icons (8×8 pixel grids)
+const IC={
+  pinecone:[['....g...','...bBb..','..bBbBb.','..BbBbB.','..bBbBb.','...BbB..','....b...'],{g:'#5e7d3a',b:'#6e4024',B:'#a8683a'}],
+  holly:[['.GG..GG.','GGGgGGGG','.GGgGGG.','..grrg..','..rrrr..','...rr...'],{g:'#1f5a36',G:'#3f8f4f',r:'#d8364a'}],
+  snowberry:[['....t...','...t....','.ss.ss..','sSssSs..','.ss.ss..','..ss....','.sSs....','..s.....'],{s:'#f7fbff',S:'#c9d6e3',t:'#6b4a2e'}],
+  chestnut:[['...g....','..bbbb..','.bBBBBb.','bBBwBBBb','bBBBBBBb','bBBBBBBb','.bBBBBb.','..llll..'],{g:'#5e7d3a',b:'#5a2f1a',B:'#8a4a26',w:'#c98a5a',l:'#d9b48a'}],
+  wood:[['......b.','.....bb.','...bbB..','..bBb.b.','.bBb....','bBb.....','.b......'],{b:'#5c3a22',B:'#8a5a35'}],
+  mistletoe:[['...rr...','...r....','..gGg...','.gGGGg..','gGwGwGg.','.gGwGg..','..g.g...'],{r:'#cf3d4f',g:'#3f7a3f',G:'#7fb05a',w:'#ffffff'}],
+  snowball:[['..wwww..','.wwwwSw.','wwwwwwww','wSwwwwww','wwwwwSww','.wwwwSS.','..wSSS..'],{w:'#ffffff',S:'#c9d8e8'}],
+  ice:[['...ww...','..wcCw..','.wccCCw.','wcccCCCw','.wcCCCw.','..wCCw..','...ww...'],{w:'#ffffff',c:'#bfe6f7',C:'#7ec3e6'}],
+  ribbon:[['........','.rr..rr.','rRRrrRRr','.rrRRrr.','...rr...','..r..r..','.r....r.'],{r:'#cf3d4f',R:'#ff7a8a'}],
+  mitten:[['..RRR...','.RRRRR.R','.RRRRRRR','.RRRRRR.','.RRRRR..','.wwwww..','.wwwww..'],{R:'#cf3d4f',w:'#f4f7fb'}],
+  pantry:[['...tt...','..stts..','.ssssss.','ssssssSS','sssssSSS','ssssssSS','.sssssS.'],{s:'#e3cfa8',S:'#b39a72',t:'#8a5a35'}],
+  ornament:[['...yy...','...rr...','..bBb...','.bBrBb..','.BrBrB..','.bBrBb..','..BbB...','...b....'],{y:'#f2c35b',r:'#cf3d4f',b:'#6e4024',B:'#a8683a'}],
+  bauble:[['...yy...','..yyyy..','.bBBBBb.','bBwBBBBb','bBBBBBBb','bBBBBBBb','.bBBBBb.','..bbbb..'],{y:'#f2c35b',b:'#335f94',B:'#4f86c6',w:'#ffffff'}],
+  antique:[['...yy...','..yyyy..','.gGGGGg.','gGwGGGGg','gGGyGGGg','gGGGGyGg','.gGGGGg.','..gggg..'],{y:'#f2c35b',g:'#2a6640',G:'#5ea07a',w:'#ffffff'}],
+  cocoa:[['..s.s...','...s.s..','MMMMMM..','MccccMMM','MMMMMM.M','MMMMMMMM','MMMMMM..','.MMMM...'],{M:'#cf3d4f',c:'#6b3f2a',s:'#e6eef5'}],
+  cider:[['..s.s...','...s.s..','MMMMMM..','MccccMMM','MMMMMM.M','MMMMMMMM','MMMMMM..','.MMMM...'],{M:'#3f8f5a',c:'#c9772a',s:'#e6eef5'}],
+  ginger:[['..gggg..','..KggK..','..gwwg..','gggggggg','..gwwg..','..gggg..','.gg..gg.','.gg..gg.'],{g:'#b8703a',K:'#3a2010',w:'#ffffff'}],
+  roast:[['.s..s...','..s..s..','.bbbbbb.','bBcBBcBb','bcBBcBBb','kkkkkkkk','.kkkkkk.'],{s:'#e6eef5',b:'#5a2f1a',B:'#8a4a26',c:'#d9b48a',k:'#3a3f4a'}],
+  tart:[['........','..wsws..','.swswsw.','tttttttt','TttttttT','.TTTTTT.'],{s:'#e98fa8',w:'#ffffff',t:'#d39b5a',T:'#a8723a'}],
+  cookie:[['..tttt..','.tkttkt.','.tttttt.','.tktttk.','.tttttt.','..tttt..'],{t:'#d9a35a',k:'#6b3f2a'}],
+  pie:[['...ff...','..tTtTt.','.tTtTtTt','TTTTTTTT','.TTTTTT.'],{f:'#8fa7b8',t:'#e3b06a',T:'#a8723a'}],
+  chowder:[['..s..s..','...s..s.','wwwwwwww','woooooow','.wooooow','..wwwww.'],{s:'#e6eef5',w:'#eef3f8',o:'#f0a05a'}],
+  wallpaper:[['........','.rrrrr..','rwrwrwr.','rwrwrwrr','rwrwrwrR','rwrwrwr.','.rrrrr..'],{r:'#cf3d4f',w:'#f4f7fb',R:'#9a2a3b'}],
+  flooring:[['........','bbBbbBbb','BbbBbbBb','bBbbBbbB','bbBbbBbb','BbbBbbBb','........'],{b:'#9a6a3f',B:'#6e4728'}],
+  roofLights:[['r.......','.k....g.','..k..k..','...yk...','........','b.......','.k....p.','..kkkk..'],{k:'#3a3a42',r:'#ff5a6a',g:'#6ad38a',y:'#ffd27a',b:'#6ab0ff',p:'#ff9ad5'}],
+  rod:[['.......k','......k.','.....k..','....k..w','...k...w','..k....w','.k.....w','k......o'],{k:'#8a5a35',w:'#dfe9f2',o:'#cf3d4f'}],
+  axe:[['..ssss..','.sSSSs..','.sSSk...','..s.k...','....k...','....k...','....k...','....k...'],{s:'#9aa5b3',S:'#cfd9e3',k:'#7a5030'}],
+  coin:[['..yyyy..','.yYyyYy.','yYyYYyYy','yYyYYyYy','yYyYYyYy','yYyYYyYy','.yYyyYy.','..yyyy..'],{y:'#f2c35b',Y:'#c58a2a'}],
+  ticket:[['........','yyyyyyy.','yrrrrry.','yrwwwry.','yrrrrry.','yyyyyyy.'],{y:'#f2c35b',r:'#cf3d4f',w:'#f4f7fb'}],
+  heart:[['........','.rr.rr..','rRrrrrr.','rrrrrrr.','.rrrrr..','..rrr...','...r....'],{r:'#cf3d4f',R:'#ff9aa5'}]
+};
+const FISHPAL={minnow:['#8fa7b8','#d6e2ea','#6b8496'],perch:['#c9b36a','#f2e6b0','#cf3d4f'],trout:['#a9b8c4','#e7eef2','#d38a8a'],char:['#7d8fa0','#f2a0a0','#5d6f80'],pike:['#5d8a8f','#cfe3e0','#3e6469'],carp:['#f0b43a','#ffe08a','#d9822b']};
+for(const f in FISHPAL){const [F,b,T]=FISHPAL[f];IC[f]=[['...TT...','..FFFFF.','TFFFFKFF','TTbbbbFF','T.bbbb..','...TT...'],{F,b,T,K:'#1b1b20'}];}
+const ICONS={};
+for(const id in IC){const [rows,pal]=IC[id];const r=rows.slice();while(r.length<8)r.splice(r.length%2?0:r.length,0,'........');ICONS[id]=outline(grid(r,pal));}
+const faceURL={};const face=id=>faceURL[id]||(faceURL[id]=VSPR[id].toDataURL());
+
+// ---------- PROCEDURAL WORLD ART
+function px(x,c,X,Y,w=1,h=1){x.fillStyle=c;x.fillRect(X,Y,w,h);}
+function blob(x,w,h,cx,cy,rx,ry,fn){for(let y=0;y<h;y++)for(let X=0;X<w;X++){const d=((X+.5-cx)/rx)**2+((y+.5-cy)/ry)**2;if(d<1)fn(X,y,d);}}
+function makeTree(seed,big){
+  const w=big?64:24,h=big?84:38,c=mk(w,h),x=c.getContext('2d'),cx=w/2;
+  const tiers=big?[[2,24,20],[14,44,38],[28,62,52],[42,76,62]]:[[1,13,10],[7,22,16],[14,32,22]];
+  px(x,'#5a3a26',cx-(big?4:2),h-(big?10:7),big?8:4,big?10:7);px(x,'#46301f',cx,h-(big?10:7),big?4:2,big?10:7);
+  for(const [top,bot,wid] of tiers){
+    for(let y=top;y<=bot;y++){
+      const t=(y-top)/(bot-top),half=Math.round(1+t*wid/2+(t>.2&&hash2(y,seed)<.4?1:0));
+      for(let i=-half;i<half;i++){
+        const X=cx+i;let col=i<-half*.3?'#2f6a4c':i>half*.4?'#173d33':'#22543f';
+        const snow=(t<.32&&hash2(X+seed*7,y)<.85-t*2)||((bot-y)<=1&&hash2(X,seed+y)<.5)||hash2(X*3,y*5+seed)<.04;
+        if(snow)col=i>half*.4?'#cfdcea':'#f2f6fb';
+        px(x,col,X,y);
+      }
+    }
+  }
+  return outline(c,'#13261f');
+}
+const TREE_SPR=[makeTree(1),makeTree(2),makeTree(3)],BIG_TREE=makeTree(9,true);
+function makeRock(){const c=mk(16,12),x=c.getContext('2d');
+  blob(x,16,12,8,7,7.5,5,(X,y)=>px(x,y<4&&hash2(X,y)<.8?'#f2f6fb':X>10?'#5e6878':X<5?'#9aa5b3':'#7c8796',X,y));return outline(c,'#2a3340');}
+function makeBush(type,ready){const c=mk(16,13),x=c.getContext('2d');
+  const [a,b]=type==='holly'?['#1f5a3a','#2f7a4a']:['#4c6e58','#638a70'];
+  blob(x,16,13,8,7,7.5,6,(X,y)=>{let col=X>9?a:b;if(!ready&&hash2(X,y+3)<.45)col='#6b4a2e';if(y<3&&hash2(X,y)<.7)col='#f2f6fb';px(x,col,X,y);});
+  if(ready)for(const [X,Y] of [[4,6],[8,4],[11,7],[6,9],[10,10],[3,9],[12,4]]){if(type==='holly'){px(x,'#d8364a',X,Y,2,2);px(x,'#ff8a8a',X,Y);}else{px(x,'#fbfdff',X,Y,2,2);px(x,'#c9d6e3',X+1,Y+1);}}
+  return outline(c,'#16301f');}
+function makeDrift(){const c=mk(16,8),x=c.getContext('2d');
+  blob(x,16,8,8,7,7.5,6,(X,y)=>px(x,X>10&&y>3?'#d3dfec':hash2(X,y)<.06?'#ffffff':'#f7fafd',X,y));return outline(c,'#aebdd0');}
+function makeBoard(){const c=mk(18,22),x=c.getContext('2d');
+  px(x,'#5a3a26',2,4,2,18);px(x,'#5a3a26',14,4,2,18);px(x,'#8a5a36',1,3,16,12);px(x,'#6a4128',1,14,16,1);px(x,'#f2f6fb',0,1,18,2);return outline(c,'#22180f');}
+function makeIgloo(){const c=mk(48,30),x=c.getContext('2d');
+  blob(x,48,30,24,30,23.5,28,(X,y)=>{const row=Math.floor(y/5),off=row%2*4;px(x,(y%5===0||((X+off)%8===0))?'#bccde0':X>32?'#dbe7f2':'#eef5fb',X,y);});
+  blob(x,48,30,24,30,6,11,(X,y)=>px(x,'#2c3d55',X,y));return outline(c,'#7a8fa8');}
+function makePlotSign(){const c=mk(14,16),x=c.getContext('2d');px(x,'#5a3a26',6,6,2,10);px(x,'#8a5a36',0,1,14,7);px(x,'#f4efe6',2,3,10,3);px(x,'#cf3d4f',3,4,8,1);px(x,'#f2f6fb',0,0,14,1);return outline(c,'#22180f');}
+const ART={rock:makeRock(),bush:{},drift:makeDrift(),board:makeBoard(),igloo:makeIgloo(),plot:makePlotSign()};
+for(const t of ['holly','snowberry'])ART.bush[t]=[makeBush(t,false),makeBush(t,true)];
+function makeHouse(h){
+  const c=mk(88,96),x=c.getContext('2d'),wy=46;
+  px(x,h.wall,6,wy,76,50);
+  if(h.style==='log')for(let y=wy;y<96;y+=5){px(x,h.dark,6,y+4,76,1);px(x,'#b98a5a',4,y,3,4);px(x,'#b98a5a',81,y,3,4);}
+  if(h.style==='board')for(let X=8;X<82;X+=6)px(x,h.dark,X,wy,1,50);
+  if(h.style==='plaster'){px(x,h.dark,6,wy+4,76,2);for(const X of [6,30,56,80])px(x,h.dark,X,wy,2,50);px(x,h.dark,6,78,76,2);}
+  if(h.style==='brick')for(let y=wy;y<96;y+=4){px(x,h.dark,6,y,76,1);for(let X=6+((y/4)%2)*4;X<82;X+=8)px(x,h.dark,X,y,1,4);}
+  px(x,'#6f7680',4,92,80,4);
+  for(let y=0;y<=50;y++){const half=Math.round(8+y/50*36);px(x,h.roof,44-half,y,half*2,1);}
+  for(let y=0;y<=46;y++){const half=Math.round(8+y/50*36)-3;for(let i=-half;i<half;i++){if(y>42&&hash2(i,y)<.5)continue;px(x,i>half*.35?'#d5e1ee':'#f4f8fc',44+i,y);}}
+  for(let X=3;X<85;X+=3){const L=1+Math.floor(hash2(X,7)*4);px(x,'#cfe6f5',X,51,1,L);}
+  px(x,'#8a4436',60,6,9,20);px(x,'#6a3328',60,6,1,20);px(x,'#f4f8fc',59,4,11,3);
+  px(x,'#e9dcc4',35,70,18,26);px(x,h.door,37,72,14,24);px(x,'rgba(0,0,0,.18)',44,72,1,24);px(x,'#f2c35b',48,84,2,2);
+  px(x,h.wall,35,70,1,1);px(x,h.wall,52,70,1,1);
+  for(const X of [12,58]){px(x,'#f1ead8',X,58,18,18);px(x,'#7a5030',X-1,76,20,3);px(x,'#f4f8fc',X-1,75,20,1);}
+  if(h.sign){px(x,'#5a3a26',38,58,12,8);px(x,h.sign,41,60,6,4);}
+  return outline(c,'#1d1f26');
+}
+for(const h of HOUSES){h.spr=makeHouse(h);h.ox=h.x*16-4;h.oy=h.y*16-32;}
+const STALL_LIGHTS=['#ff5a6a','#ffd27a','#6ad38a','#6ab0ff','#ff9ad5'];
+const TREE_ORN=[],TREE_BULBS=[];
+(function(){const r=mulberry32(77);let n=0;while(TREE_ORN.length<TREE_GOAL&&n<2000){n++;const X=6+r()*52,Y=14+r()*58;
+  const half=4+(Y/84)*28;if(Math.abs(X-32)<half-3)TREE_ORN.push([Math.round(X),Math.round(Y),STALL_LIGHTS[TREE_ORN.length%5]]);}
+  for(let k=0;k<40;k++){const t=k/40,Y=12+t*62,half=5+(Y/84)*26;TREE_BULBS.push([Math.round(32+Math.sin(t*Math.PI*9)*half*.85),Math.round(Y),STALL_LIGHTS[k%5]]);}})();
+
+// ---------- GROUND
+const ground=mk(MAPW,MAPH);
+(function buildGround(){
+  const g=ground.getContext('2d'),img=g.createImageData(MAPW,MAPH),d=img.data;
+  const snow=(x,y)=>{const n=vnoise(x/48,y/48)*.6+vnoise(x/14,y/14)*.4,s=(n-.5)*22,h=hash2(x,y);
+    if(h<.012)return[255,255,255];if(h>.99)return[206,220,236];return[232+s,239+s,247+s*.4];};
+  for(let y=0;y<MAPH;y++)for(let x=0;x<MAPW;x++){
+    const tx=x>>4,ty=y>>4,t=TT[I(tx,ty)],lx=x&15,ly=y&15;let col;
+    if(t){const th=1.5+vnoise(x/3,y/3)*3;let edge=false;
+      const nb=(ax,ay)=>inMap(ax,ay)&&TT[I(ax,ay)]===0;
+      if((lx<th&&nb(tx-1,ty))||(15-lx<th&&nb(tx+1,ty))||(ly<th&&nb(tx,ty-1))||(15-ly<th&&nb(tx,ty+1)))edge=true;
+      if(edge)col=snow(x,y);
+      else if(t===3){const st=Math.sin(x*.35+y*.12)*vnoise(x/20,y/20);col=[188+st*20,224+st*12,240+st*6];
+        if(Math.abs(vnoise(x/9,y/9)-.5)<.018)col=[150,190,215];if(vnoise(x/14+50,y/14)>.74)col=snow(x,y);}
+      else{const row=y>>2,off=(row%2)*3,cl=Math.floor((x+off)/6),h=hash2(cl,row)*24-12,warm=t===2?14:0;
+        col=(y%4===0||(x+off)%6===0)?[100+warm,96+warm*.6,98]:[130+h+warm,124+h+warm*.6,122+h];
+        if(vnoise(x/6,y/6)>.66)col=snow(x,y);}
+    }else col=snow(x,y);
+    const o=(y*MAPW+x)*4;d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=255;
+  }
+  g.putImageData(img,0,0);
+  g.fillStyle='rgba(80,110,150,.18)';
+  const sh=(cx,cy,rx,ry)=>{g.beginPath();g.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);g.fill();};
+  for(const t of BORDER_TREES)sh(t.x*16+10,t.y*16+15,10,4);
+  for(const h of HOUSES)sh(h.x*16+42,h.y*16+64,44,5);
+  sh(TREE_C.x+4,TREE_C.y,30,6);
+  for(const [x,y] of HOLES){g.fillStyle='#bfe0ef';sh(x*16+8,y*16+9,7,5);g.fillStyle='#173a5c';sh(x*16+8,y*16+9,5,3.5);g.fillStyle='rgba(80,110,150,.18)';}
+  g.fillStyle='rgba(110,74,46,.55)';
+  for(let i=0;i<220;i++){const x=Math.floor(hash2(i,3)*MAPW),y=Math.floor(hash2(i,9)*MAPH);if(TT[I(x>>4,y>>4)]===0){g.fillRect(x,y,1,2);g.fillRect(x+1,y-1,1,1);}}
+})();
+
+// ---------- DECOR ART (each draw gets ctx, palette, variant index, animation frame)
+const WHITE='#f4f7fb',SNOW='#f2f6fb',DK='#2a2f3a',WOOD='#7a5030',WOOD2='#5a3a26';
+function lighten(hex,t){const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,f=v=>Math.round(v+(255-v)*t);return `rgb(${f(r)},${f(g)},${f(b)})`;}
+const DART={
+  snowman:[14,21,(x,P)=>x.drawImage(grid(['....kkkk....','....kkkk....','...kkkkkk...','....wwww....','...wkwwkw...','...wwwooo...','....wwww....','..rrrrrrrr..','b..wwwwrw..b','.bwwwwwrwwb.','..wwwkwwws..','..wwwwwwws..','...wwkwws...','..wwwwwwwww.','.wwwwwwwwwss','.wwwwkwwwwss','.wwwwwwwwwss','..wwwwwwwss.','...wwwwsss..'],{k:'#2a2a33',w:'#ffffff',s:'#c8d6e6',o:'#f08a2a',r:P.A,b:'#6e4024'}),1,1)],
+  lantern:[8,15,(x,P)=>x.drawImage(grid(['...kk...','..dddd..','.rryyrr.','.ryyyyr.','.ryyyyr.','.rryyrr.','..dddd..','...kk...','...kk...','...kk...','...kk...','...kk...','...kk...','...kk...','..kkkk..'],{k:'#3a2a20',r:P.A,d:P.a,y:'#ffd27a'}),0,0)],
+  lamp:[9,28,(x,P,i,f)=>{px(x,P.A,3,10,3,16);px(x,P.A,2,25,5,3);px(x,P.A,1,3,7,8);px(x,f?'#ffe39a':'#cfdbe6',2,4,5,6);px(x,f?'#fff6d6':'#eef3f8',3,5,1,2);px(x,P.a,0,2,9,2);px(x,SNOW,1,0,7,2);}],
+  bench:[18,11,(x,P)=>{px(x,P.a,1,0,16,3);px(x,P.A,1,4,16,3);px(x,SNOW,2,3,14,1);px(x,SNOW,1,0,10,1);px(x,'#3a2a20',2,7,2,4);px(x,'#3a2a20',14,7,2,4);}],
+  sled:[16,9,(x,P)=>{px(x,P.A,2,1,12,4);px(x,P.a,2,4,12,1);px(x,'#e2b07a',3,2,10,1);px(x,DK,1,6,14,1);px(x,DK,0,5,1,1);px(x,DK,15,5,1,1);px(x,SNOW,4,0,6,1);}],
+  candycane:[7,18,(x,P)=>{const s=(X,Y)=>px(x,((X+Y)>>1)%2?P.A:WHITE,X,Y);for(let y=2;y<18;y++){s(4,y);s(5,y);}for(let X=1;X<=4;X++)s(X,0);s(0,1);s(1,1);s(4,1);s(5,1);s(0,2);s(1,2);s(0,3);}],
+  fence:[16,12,(x,P)=>{for(const X of [1,7,13]){px(x,P.A,X,2,2,10);px(x,P.a,X+1,2,1,10);px(x,SNOW,X,1,2,1);}px(x,P.A,0,5,16,2);px(x,P.A,0,9,16,2);px(x,P.a,0,6,16,1);px(x,SNOW,0,4,16,1);}],
+  sapling:[26,40,(x,P,i)=>{x.drawImage(TREE_SPR[0],0,0);if(i)for(const [X,Y] of [[12,8],[9,14],[15,16],[7,22],[13,21],[18,24],[5,29],[11,28],[16,30],[20,30]])px(x,P.A,X,Y,1,1);}],
+  icesculpt:[14,18,(x,P,i)=>{const C='#cfeaf7',S='#8fc7e6';px(x,'#e8eff6',1,14,12,4);px(x,'#bfcbd8',1,17,12,1);
+    const sh=[['.....SS.....','.....CC.....','....CCCC....','CCCCCCCCCCCS','.CCCCCCCCCS.','..CCCCCCCS..','..CCCCCCCS..','.CCCS..CCCS.','.CCS....CCS.','.CS......CS.'],
+      ['..CC........','.CCSC.......','..C.C.......','....C.......','....CC......','...CCCCC.CC.','..CCCCCCCCS.','..CCCCCCCS..','...CCCCCS...','....SSSS....'],
+      ['............','..C.........','.CCC....CC..','CCCCCC.CCC..','CCCCCCCCCC..','CCWCCCCCSC..','.CCCCCCSCC..','..CCSS..CC..','.........C..','............']][i];
+    x.drawImage(grid(sh,{C,S,W:'#1b3a5a'}),1,4);}],
+  giftstack:[16,14,(x,P)=>{px(x,P.A,1,6,9,8);px(x,P.B,5,6,1,8);px(x,P.B,1,9,9,1);px(x,WHITE,10,8,5,6);px(x,P.A,12,8,1,6);px(x,P.a,3,1,5,5);px(x,P.B,5,1,1,5);px(x,P.B,4,0,1,1);px(x,P.B,6,0,1,1);}],
+  reindeer:[16,16,(x,P)=>{const s='#d9b06a',d='#b88a45';px(x,s,3,6,9,5);px(x,d,3,10,9,1);for(const X of [3,5,9,11])px(x,d,X,11,1,5);px(x,s,11,3,2,4);px(x,s,11,1,4,3);px(x,'#5a3a26',12,0,1,1);px(x,'#5a3a26',14,0,1,1);px(x,'#1b1b20',13,2,1,1);px(x,P.A,11,5,3,1);px(x,P.A,10,6,1,2);px(x,s,1,5,2,2);}],
+  firepit:[16,14,(x,P,i,f)=>{blob(x,16,14,8,9,7.5,4.5,(X,y)=>px(x,(X+y)%3?P.A:P.a,X,y));blob(x,16,14,8,9,5,3,(X,y)=>px(x,'#2a1410',X,y));
+    px(x,WOOD,4,9,8,1);px(x,'#ff7a2a',5,4+f,6,5-f);px(x,'#ffb347',6,5,4,3);px(x,'#ffe39a',7,6+f,2,2);}],
+  poinsettia:[12,13,(x,P)=>{px(x,'#b8603a',3,8,6,5);px(x,'#8a4428',3,8,6,1);px(x,'#2f6a4c',1,3,10,4);
+    for(const [X,Y] of [[5,0],[2,2],[8,2],[1,5],[9,5],[4,4],[6,4],[5,6],[3,1],[7,1]])px(x,P.A,X,Y,2,2);px(x,'#f2c35b',5,3,2,2);}],
+  bed:[32,22,(x,P)=>{px(x,WOOD,0,0,4,22);px(x,WOOD2,1,1,2,20);px(x,WOOD,28,6,4,16);px(x,'#efe6da',3,6,26,14);
+    for(let X=9;X<28;X+=4)for(let Y=6;Y<20;Y+=4)px(x,(X+Y)%8?P.A:P.a,X,Y,4,4);px(x,P.B,9,6,19,1);px(x,WHITE,4,7,5,11);px(x,'#d8dee6',4,16,5,2);}],
+  rug:[48,32,(x,P)=>{blob(x,48,32,24,16,23.5,15.5,(X,y,d)=>{const ring=Math.floor(Math.sqrt(d)*5);px(x,[P.A,P.B,P.A,P.a,P.A][ring]||P.A,X,y);if(hash2(X,y)<.08)px(x,'rgba(255,255,255,.18)',X,y);});}],
+  armchair:[16,18,(x,P)=>{px(x,P.a,1,0,14,9);px(x,P.A,2,1,12,7);px(x,P.a,0,6,3,10);px(x,P.a,13,6,3,10);px(x,P.A,3,8,10,7);px(x,lighten(P.A,.2),3,8,10,2);px(x,WOOD2,1,16,2,2);px(x,WOOD2,13,16,2,2);}],
+  table:[16,14,(x,P)=>{px(x,P.a,7,8,2,5);px(x,P.a,4,12,8,2);blob(x,16,9,8,4.5,7.5,4,(X,y)=>px(x,y>5?P.a:P.A,X,y));px(x,lighten(P.A,.3),4,2,3,1);}],
+  chair:[12,16,(x,P)=>{px(x,P.A,1,0,10,2);for(const X of [1,4,7,10])px(x,P.A,X,0,1,8);px(x,P.A,1,7,10,4);px(x,lighten(P.A,.2),1,7,10,1);px(x,P.a,1,11,2,5);px(x,P.a,9,11,2,5);}],
+  bookshelf:[16,26,(x,P)=>{px(x,P.A,0,0,16,26);px(x,P.a,1,1,14,24);const cols=['#cf3d4f','#3f8f5a','#4f86c6','#f2c35b','#8a4f9e','#e9dcc4'];
+    for(const sy of [2,9,16]){for(let X=2;X<14;X++){const h=4+Math.floor(hash2(X,sy)*3);if(hash2(sy,X)<.15)continue;px(x,cols[Math.floor(hash2(X*7,sy)*6)],X,sy+6-h,1,h);}px(x,P.A,1,sy+6,14,1);}px(x,P.A,1,23,14,2);}],
+  hearth:[32,30,(x,P,i,f)=>{const [b,m]=[['#a9533f','#7a3a2c'],['#8a93a0','#5f6873'],['#efe6da','#c9bba8']][i];px(x,b,2,0,28,30);
+    for(let y=0;y<30;y+=4){px(x,m,2,y,28,1);for(let X=2+((y/4)%2)*4;X<30;X+=8)px(x,m,X,y,1,4);}
+    px(x,WOOD,0,10,32,3);px(x,WOOD2,0,13,32,1);px(x,'#1d1210',8,15,16,15);px(x,'#1d1210',9,14,14,1);
+    px(x,WOOD2,10,26,12,2);px(x,'#ff7a2a',11,19+f,10,7-f);px(x,'#ffb347',13,21,6,5);px(x,'#ffe39a',14,23+f,4,3-f);px(x,'#3f8f5a',4,8,24,2);px(x,'#cf3d4f',8,8,1,1);px(x,'#cf3d4f',16,8,1,1);px(x,'#cf3d4f',24,8,1,1);}],
+  stocking:[10,14,(x,P)=>{px(x,WHITE,1,0,7,3);px(x,P.A,2,3,5,6);px(x,P.A,2,9,8,3);px(x,P.a,7,9,3,3);px(x,P.B,2,9,2,3);px(x,P.a,2,12,7,1);}],
+  painting:[16,14,(x,P,i)=>{px(x,'#c58a2a',0,0,16,14);px(x,'#8a5a20',1,1,14,12);
+    const S=[[ '#9fc0d6','#dbeef7','#3f8f5a'],['#1b2a4a','#f2c35b','#2f6a4c'],['#13203a','#f4efe0','#dbe6f0'],['#f2d6c8','#b2543f','#ecd3bc']][i];
+    px(x,S[0],2,2,12,10);
+    if(i===0){px(x,S[1],2,8,12,4);px(x,S[2],10,4,3,4);px(x,'#7a5030',11,8,1,1);}
+    if(i===1){for(let y=3;y<11;y++){const h=Math.floor((y-3)/2)+1;px(x,S[2],8-h,y,h*2,1);}px(x,S[1],7,2,2,1);px(x,'#cf3d4f',6,7,1,1);px(x,'#f2c35b',9,9,1,1);}
+    if(i===2){px(x,S[1],9,3,3,3);px(x,S[2],2,9,12,3);px(x,'#ffffff',4,4,1,1);px(x,'#ffffff',6,7,1,1);}
+    if(i===3){px(x,S[2],4,6,8,6);px(x,S[1],3,4,10,2);px(x,'#ffd77a',6,8,2,2);px(x,'#ffffff',2,11,12,1);}}],
+  snowglobe:[10,12,(x,P,i)=>{px(x,WOOD,1,9,8,3);px(x,WOOD2,1,11,8,1);blob(x,10,10,5,5,4.5,4.5,(X,y)=>px(x,'#d6ecf7',X,y));px(x,'#ffffff',2,2,1,2);
+    if(i===0){px(x,'#2f6a4c',4,3,2,1);px(x,'#2f6a4c',3,4,4,2);px(x,'#5a3a26',4,6,2,2);}
+    if(i===1){px(x,'#cf3d4f',3,3,4,2);px(x,'#9a6a3f',3,5,4,3);px(x,'#ffd77a',4,6,1,1);}
+    if(i===2){px(x,'#ffffff',4,3,2,2);px(x,'#ffffff',3,5,4,3);px(x,'#f08a2a',5,4,1,1);}
+    px(x,'#ffffff',6,3,1,1);px(x,'#ffffff',3,7,1,1);}],
+  musicbox:[12,12,(x,P)=>{px(x,P.a,1,0,10,4);px(x,P.B,1,3,10,1);px(x,P.A,1,4,10,8);px(x,P.a,1,11,10,1);px(x,P.B,1,4,1,8);px(x,P.B,10,4,1,8);px(x,'#f4efe6',5,1,2,2);px(x,P.B,11,7,1,2);}],
+  train:[16,11,(x,P,i,f)=>{const y0=f?0:1;px(x,P.A,2,3+y0,8,5);px(x,P.a,9,0+y0,5,8);px(x,'#ffd77a',10,2+y0,3,2);px(x,DK,3,0+y0,2,3);px(x,DK,0,8,16,1);for(const X of [3,7,11])px(x,'#1b1b20',X,8,2,2);px(x,P.B,2,5+y0,8,1);}],
+  ginghouse:[16,16,(x,P)=>{px(x,'#b8703a',2,7,12,9);px(x,'#8a4f26',2,15,12,1);for(let y=0;y<8;y++){const h=Math.min(8,y+1);px(x,P.A,8-h,y,h*2,1);}
+    px(x,'#6b3f2a',6,10,4,6);px(x,'#ffd77a',3,9,2,2);px(x,'#ffd77a',11,9,2,2);for(const [X,Y,c] of [[4,5,'#cf3d4f'],[8,3,'#3f8f5a'],[11,6,'#cf3d4f'],[6,7,'#f2c35b']])px(x,c,X,Y);}],
+  candles:[12,12,(x,P,i,f)=>{px(x,DK,0,11,12,1);px(x,P.A,1,5,3,6);px(x,P.A,5,2,3,9);px(x,P.A,9,6,2,5);px(x,P.a,3,5,1,6);px(x,P.a,7,2,1,9);
+    px(x,'#ffd27a',2,3+f,1,2-f);px(x,'#ffd27a',6,0+f,1,2-f);px(x,'#ffd27a',9,4+f,1,2-f);}],
+  wreath:[14,14,(x,P)=>{blob(x,14,14,7,7,7,7,(X,y,d)=>{if(d>.25)px(x,hash2(X,y)<.5?'#2f7a4a':'#1f5a3a',X,y);});for(const [X,Y] of [[3,3],[10,4],[2,8],[11,9],[6,1]])px(x,'#d8364a',X,Y);px(x,P.A,5,10,4,3);px(x,P.A,4,12,1,2);px(x,P.A,9,12,1,2);px(x,P.a,6,11,2,1);}],
+  garland:[16,8,(x,P)=>{for(let X=0;X<16;X++){const y=Math.round(1+Math.sin(X/15*Math.PI)*4);px(x,'#2f7a4a',X,y,1,2);if(X%3===1)px(x,P.A,X,y+2);}px(x,'#1f5a3a',0,0,2,2);px(x,'#1f5a3a',14,0,2,2);}],
+  fairy:[16,6,(x,P,i,f)=>{const cols=i===0?STALL_LIGHTS:[P.A,lighten(P.A,.4)];for(let X=0;X<16;X++){const y=Math.round(1+Math.sin(X/15*Math.PI)*2);px(x,'#3a3a42',X,y);if(X%3===1)px(x,(X+f)%2?cols[X%cols.length]:lighten(cols[X%cols.length],.5),X,y+1,1,2);}}],
+  clock:[12,16,(x,P)=>{for(let y=0;y<4;y++)px(x,P.a,5-y,y,2+y*2,1);px(x,P.A,1,4,10,8);px(x,'#f4efe6',3,5,6,5);px(x,'#1b1b20',6,6,1,3);px(x,'#1b1b20',6,8,2,1);px(x,'#c58a2a',3,12,1,4);px(x,'#c58a2a',8,12,1,3);px(x,'#c58a2a',7,14,3,2);}],
+  bells:[12,12,(x,P)=>{for(let k=0;k<10;k++)px(x,P.A,k+1,k,2,2);for(const [X,Y] of [[2,3],[5,6],[8,9]]){px(x,'#f2c35b',X,Y,3,3);px(x,'#c58a2a',X+2,Y+1,1,2);px(x,'#ffe9a8',X,Y,1,1);}}],
+  mailbox:[10,13,(x,P,i,f)=>{px(x,SNOW,2,0,6,1);px(x,P.A,1,1,8,5);px(x,P.a,2,3,6,1);px(x,'#3a2a20',4,6,2,6);px(x,'#3a2a20',3,12,4,1);if(f){px(x,'#f2c35b',9,0,1,4);px(x,'#f2c35b',8,0,1,1);}}],
+  workbench:[18,16,(x)=>{px(x,'#9a6a3f',0,5,18,4);px(x,WOOD,0,9,18,2);px(x,WOOD2,1,11,3,5);px(x,WOOD2,14,11,3,5);
+    px(x,'#aab4c0',3,2,7,3);px(x,'#7a8592',3,4,7,1);px(x,WOOD2,10,3,3,2);px(x,'#c9d6e3',13,1,2,4);px(x,WOOD2,13,0,2,1);px(x,SNOW,0,4,5,1);px(x,SNOW,14,4,4,1);}],
+  oven:[18,20,(x,P,i,f)=>{const [b,m]=i?['#7c8592','#555d68']:['#a9533f','#7a3a2c'];blob(x,18,20,9,12,8.5,8.5,(X,y)=>px(x,(y%4===0||((X+(y>>2)*2)%6===0))?m:b,X,y));
+    px(x,SNOW,4,3,10,2);px(x,'#555b66',12,0,3,5);px(x,'#2a1410',6,12,6,8);px(x,'#2a1410',7,11,4,1);px(x,f?'#ffb347':'#ff7a2a',7,15,4,5);px(x,f?'#ff7a2a':'#ffd27a',8,17,2,3);}],
+  counter:[32,20,(x,P)=>{px(x,lighten(P.A,.25),0,0,32,5);px(x,P.A,0,5,32,15);px(x,P.a,0,5,32,1);for(const X of [2,12,22])px(x,P.a,X,8,8,10);
+    px(x,'#e9c08a',3,1,6,3);px(x,'#c58a4a',4,1,4,1);px(x,'#cfe6f5',22,0,4,4);px(x,'#cf3d4f',23,1,2,2);px(x,'#f2c35b',14,2,3,2);}]
+};
+const DSPR={};
+function decorSprite(id,vi,f){const k=id+'|'+vi+'|'+(f||0);if(DSPR[k])return DSPR[k];const def=DECOR[id],[w,h,fn]=DART[id];
+  const vk=def.vars[vi%def.vars.length],P=VARS[vk]||VARS.white,c=mk(w,h),x=c.getContext('2d');fn(x,P,vi%def.vars.length,f||0);
+  return DSPR[k]=outline(c,def.where==='wall'?'#2a1d1d':'#1c2433');}
+const DECOR_ANIM={lamp:1,firepit:1,hearth:1,train:1,candles:1,fairy:1,oven:1,mailbox:1};
+const ICON_URL={};
+const icon=id=>ICON_URL[id]||(ICON_URL[id]=(ICONS[id]?ICONS[id]:DECOR[id]?decorSprite(id,0,id==='lamp'||id==='mailbox'?1:0):ICONS.coin).toDataURL());
+const varName=(id,i)=>{const d=DECOR[id];return d.varNames?d.varNames[i]:VARS[d.vars[i]].n;};
+
+// ---------- ROOMS
+const ROOM_CACHE={};
+function roomCanvas(wallStyle,wallVar,floor){
+  const k=wallStyle+wallVar+floor;if(ROOM_CACHE[k])return ROOM_CACHE[k];
+  const c=mk(RW*16,RH*16),x=c.getContext('2d'),P=VARS[wallVar]||VARS.wood,A=P.A,L=lighten(P.A,.45),a=P.a;
+  for(let y=32;y<RH*16;y++)for(let X=16;X<RW*16-16;X++){let col;
+    if(floor==='oak'||floor==='cherry'){const [b,s,g]=floor==='oak'?['#b98a5a','#8a6038','#c99a6a']:['#a8583e','#7a3a28','#b8684e'];
+      const row=Math.floor(y/5),len=20+Math.floor(hash2(row,3)*16),off=Math.floor(hash2(row,9)*30);col=y%5===0||(X+off)%len===0?s:hash2(X>>2,y)<.12?g:b;}
+    else if(floor==='checker')col=((X>>3)+(y>>3))%2?'#efe3d0':'#c45a4a';
+    else if(floor==='stone'){const cx=Math.floor((X+(Math.floor(y/10)%2)*7)/14),cy=Math.floor(y/10);col=(y%10===0||(X+(cy%2)*7)%14===0)?'#6f7882':['#9aa3ae','#a7afb9','#8e98a3'][Math.floor(hash2(cx,cy)*3)];}
+    else{const st=Math.sin(X*.3+y*.1)*vnoise(X/12,y/12);col=`rgb(${200+st*20|0},${230+st*12|0},${244})`;}
+    px(x,col,X,y);}
+  for(let y=4;y<30;y++)for(let X=16;X<RW*16-16;X++){let col=A;
+    if(wallStyle==='stripe')col=(X>>2)%2?A:L;
+    else if(wallStyle==='dots')col=((X%8===3&&y%8===3)||(X%8===7&&y%8===7))?A:L;
+    else if(wallStyle==='plaid')col=(X%10<2||y%10<2)?a:((X%10===5||y%10===5)?P.B:A);
+    else if(wallStyle==='snowflake'){const lx=X%12,ly=y%12;col=((lx===6&&ly>3&&ly<9)||(ly===6&&lx>3&&lx<9)||(lx===ly&&lx>4&&lx<8)||(lx+ly===12&&lx>4&&lx<8))?'#ffffff':A;}
+    else if(wallStyle==='plank')col=X%8===0?a:(hash2(X>>3,y>>2)<.08?a:A);
+    else if(wallStyle==='ice'){const row=Math.floor(y/6),off=row%2*6;col=(y%6===0||(X+off)%12===0)?'#bccde0':'#e6f1fa';}
+    px(x,col,X,y);}
+  px(x,'#5a3a26',16,0,RW*16-32,4);px(x,'#7a5030',16,3,RW*16-32,1);px(x,'#6a4128',16,28,RW*16-32,4);px(x,'#8a5a36',16,28,RW*16-32,1);
+  px(x,'rgba(0,0,0,.18)',16,32,RW*16-32,3);
+  for(const X of [0,RW*16-16]){px(x,'#4a3426',X,0,16,RH*16);px(x,'#6a4c38',X===0?14:RW*16-16,0,2,RH*16);}
+  px(x,'#4a3426',0,RH*16-16,RW*16,16);px(x,'#6a4c38',0,RH*16-16,RW*16,2);
+  px(x,'#8a5a35',RDOOR[0]*16,RH*16-16,16,16);px(x,'#cf3d4f',RDOOR[0]*16+2,RH*16-12,12,8);px(x,'#f2c35b',RDOOR[0]*16+2,RH*16-9,12,2);
+  for(const t of [2,8]){px(x,'#f1ead8',t*16+1,6,14,20);px(x,'#7a5030',t*16,25,16,3);}
+  return ROOM_CACHE[k]=c;
+}
+
+// ---------- STATE
+let S=null;
+const mkDecor=list=>list.map(([id,x,y,v])=>({id,x,y,v:Math.max(0,DECOR[id].vars.indexOf(v))}));
+function freshState(){
+  return {v:2,day:1,time:DAY_START,coins:60,inv:{},recipes:START_RECIPES.slice(),
+    friends:Object.fromEntries(ALL_IDS.map(id=>[id,{pts:0,talked:false,gifted:false,met:false}])),
+    hasRod:false,sturdy:false,cabinLights:false,hasAxe:false,
+    bushes:BUSHES.map(()=>({ready:true,regrow:0})),drifts:DRIFTS.map(()=>true),items:[],chopped:[],
+    decor:{village:mkDecor(VILLAGE_DECOR),cabin:mkDecor(ROOMS.cabin.decor)},rooms:{cabin:{wall:ROOMS.cabin.wall.slice(),floor:ROOMS.cabin.floor}},
+    residents:BASE_IDS.slice(),plots:[null,null,null],moving:null,visitor:null,letters:[],
+    requests:[],treePts:0,mailRead:false,festivalDone:false,weather:'snow',wish:'',fishLog:{},
+    stats:{today:0,yesterday:0,earned:0,crafted:0,placed:0,restyled:0,wishes:0},flags:{},tasks:{},
+    scene:'village',px:7*16+8,py:8*16+12,face:'down'};
+}
+const has=(id,n=1)=>(S.inv[id]||0)>=n;
+const give=(id,n=1)=>{S.inv[id]=(S.inv[id]||0)+n;};
+const take=(id,n=1)=>{S.inv[id]=(S.inv[id]||0)-n;if(S.inv[id]<=0)delete S.inv[id];};
+function addCoins(n){S.coins+=n;if(n>0){S.stats.today+=n;S.stats.earned+=n;}}
+const hearts=id=>Math.min(5,Math.floor(S.friends[id].pts/20));
+const addPts=(id,n)=>{S.friends[id].pts=Math.min(100,S.friends[id].pts+n);};
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+function migrate(s){
+  if(!s)return null;if(s.v===2)return s;if(s.v!==1)return null;
+  const n=freshState();
+  for(const k of ['day','time','coins','inv','hasRod','sturdy','cabinLights','treePts','mailRead','festivalDone','weather','wish','fishLog','flags','requests'])if(s[k]!==undefined)n[k]=s[k];
+  n.recipes=[...new Set([...START_RECIPES,...(s.recipes||[])])];
+  for(const id in s.friends||{})if(n.friends[id])Object.assign(n.friends[id],s.friends[id]);
+  for(const p of s.placed||[])if(DECOR[p.id])n.decor.village.push({id:p.id,x:p.x,y:p.y,v:0});
+  if(n.inv.lights)delete n.inv.lights;n.stats.earned=(s.stats&&s.stats.earned)||0;
+  return n;}
+function loadSave(){try{return migrate(JSON.parse(localStorage.getItem(SAVE_KEY)));}catch(e){return null;}}
+const daysLeft=()=>24-S.day;
+const festivalEvening=()=>!S.festivalDone&&S.day>=24&&S.time>=FEST_TIME;
+
+// ---------- WORLD STATE HELPERS
+const fp=o=>{const d=DECOR[o.id];return [d.w||1,d.h||1];};
+function rebuildOcc(scene){const g=occFor(scene),w=sceneW(scene);g.fill(0);
+  for(const o of S.decor[scene]||[]){const d=DECOR[o.id];if(!d.solid||d.where==='wall')continue;const [fw,fh]=fp(o);
+    for(let y=o.y;y<o.y+fh;y++)for(let x=o.x;x<o.x+fw;x++)if(x>=0&&y>=0&&x<w&&y<sceneH(scene))g[y*w+x]=1;}}
+function applyWorld(){for(const t of TREES)sol(t.x,t.y,S.chopped.includes(t.i)?0:1);
+  PLOTS.forEach((p,i)=>{for(let y=p.y;y<p.y+4;y++)for(let x=p.x;x<p.x+5;x++)sol(x,y,S.plots[i]?1:0);});
+  for(const sc in S.decor)rebuildOcc(sc);}
+const PLOT_HOUSES=[];
+function plotHouse(i){const id=S.plots[i];if(!id)return null;const c=PLOT_HOUSES[i];if(c&&c.owner===id)return c;
+  const p=PLOTS[i],st=VDEF[id].style,h={id:'plot'+i,x:p.x,y:p.y,...st,owner:id,name:VDEF[id].name+"'s house"};h.spr=makeHouse(h);h.ox=h.x*16-4;h.oy=h.y*16-32;return PLOT_HOUSES[i]=h;}
+const allHouses=()=>[...HOUSES,...PLOTS.map((p,i)=>plotHouse(i)).filter(Boolean)];
+function homeScene(id){const d=VDEF[id];if(d.home)return d.home;const i=S.plots.indexOf(id);return i>=0?'plot'+i:null;}
+function ensureRoom(sc){if(S.decor[sc])return;let def=ROOMS[sc],wall,floor;
+  if(!def){const owner=S.plots[+sc.slice(4)];def=ROOMS._visitor;const r=VDEF[owner].room;wall=[r[0],r[1]];floor=r[2];}else{wall=def.wall;floor=def.floor;}
+  S.decor[sc]=mkDecor(def.decor);S.rooms[sc]={wall:wall.slice(),floor};rebuildOcc(sc);}
+function plotFootprint(x,y){return PLOTS.some(p=>x>=p.x&&x<p.x+5&&y>=p.y&&y<=p.y+4);}
+function doorStand(x,y){return allHouses().some(h=>x===h.x+2&&y===h.y+4)||(x===IGLOO.x+1&&y===IGLOO.y+2);}
+function canPlace(sc,id,x,y,ignore){
+  const d=DECOR[id];if(!d)return false;
+  if(sc==='village'){if(!(d.where==='out'||d.where==='both'))return false;}
+  else{if(d.where==='out')return false;}
+  if(d.where==='wall'){if(sc==='village'||y!==1||x<1||x>RW-2||x===2||x===8)return false;
+    return !(S.decor[sc]||[]).some(o=>o!==ignore&&DECOR[o.id].where==='wall'&&o.x===x&&o.y===y);}
+  if(sc!=='village'&&y<2)return false;
+  const [fw,fh]=[d.w||1,d.h||1],floorL=d.layer==='floor';
+  for(let ty=y;ty<y+fh;ty++)for(let tx=x;tx<x+fw;tx++){
+    if(sc==='village'){if(!inMap(tx,ty)||isBorder(tx,ty)||SOLID[I(tx,ty)]||TT[I(tx,ty)]===3||plotFootprint(tx,ty)||doorStand(tx,ty))return false;
+      if(S.items.some(i=>i.x===tx&&i.y===ty))return false;if(tx===BOARD[0]&&ty===BOARD[1]+1)return false;}
+    else{if(tx<1||tx>RW-2||ty<2||ty>RH-2)return false;if(d.solid&&tx===RDOOR[0]&&ty===RH-2)return false;}
+    if(d.solid&&S.scene===sc&&Math.floor(S.px/16)===tx&&Math.floor((S.py-2)/16)===ty)return false;
+    for(const o of S.decor[sc]||[]){if(o===ignore||DECOR[o.id].where==='wall')continue;const [ow,oh]=fp(o);
+      if(tx>=o.x&&tx<o.x+ow&&ty>=o.y&&ty<o.y+oh){const ofl=DECOR[o.id].layer==='floor';if(ofl===floorL)return false;}}}
+  return true;}
+function decorAt(sc,x,y,wallFirst){const L=(S.decor[sc]||[]).slice().reverse();
+  const hit=o=>{const [ow,oh]=fp(o);return x>=o.x&&x<o.x+ow&&y>=o.y&&y<o.y+oh;};
+  return L.find(o=>hit(o)&&DECOR[o.id].where==='wall')||L.find(o=>hit(o)&&DECOR[o.id].layer!=='floor')||L.find(hit);}
+function freeTile(x,y){
+  if(!inMap(x,y)||isBorder(x,y)||SOLID[I(x,y)]||(OCC.village&&OCC.village[I(x,y)]))return false;
+  const t=TT[I(x,y)];if(t===1||t===3)return false;
+  if(S.items.some(i=>i.x===x&&i.y===y)||(S.decor.village||[]).some(o=>o.x===x&&o.y===y))return false;
+  return !doorStand(x,y)&&!plotFootprint(x,y);}
+function spawnForage(){
+  S.items=S.items.slice(-10);const live=TREES.filter(t=>!S.chopped.includes(t.i));let n=0,tries=0;
+  const near=(id,count,pool,dy0=0)=>{n=0;tries=0;while(n<count&&tries++<400&&pool.length){const t=pick(pool),x=t.x+ri(-1,1),y=t.y+ri(dy0,1);if(freeTile(x,y)){S.items.push({x,y,id});n++;}}};
+  near('pinecone',8,live);near('chestnut',4,live.filter(t=>t.x>=30));
+  n=0;tries=0;while(n<6&&tries++<400){const x=ri(4,W-5),y=ri(4,H-5);if(freeTile(x,y)){S.items.push({x,y,id:'wood'});n++;}}
+  if(rnd()<.4)near('mistletoe',1,live,1);
+}
+function genRequests(){
+  const raw=['pinecone','holly','snowberry','wood','snowball','chestnut'],pool=raw.slice();
+  if(S.hasRod)pool.push('minnow','perch','trout');
+  if(S.day>=3)pool.push('ornament','cocoa','garland','roast','fence');
+  if(S.day>=6)pool.push('ginger','wreath','table','candles');
+  S.requests=[];const used=new Set();
+  for(let i=0;i<3;i++){let item,t=0;do{item=pick(pool);}while(used.has(item)&&t++<20);used.add(item);
+    const who=pick(S.residents),qty=raw.includes(item)?ri(2,5):1+(rnd()<.3?1:0);
+    S.requests.push({who,item,qty,reward:Math.round((ITEMS[item].price||10)*qty*1.7+15),done:false,note:pick(REQ_NOTES[who])});}
+}
+function newDay(passedOut){
+  S.stats.yesterday=S.stats.today;S.stats.today=0;
+  S.day++;S.time=passedOut?480:DAY_START;S.mailRead=false;
+  for(const id of ALL_IDS){S.friends[id].talked=false;S.friends[id].gifted=false;}
+  S.bushes.forEach(b=>{if(!b.ready&&S.day>=b.regrow)b.ready=true;});
+  S.drifts=S.drifts.map(()=>true);
+  if(S.moving){const {id,plot}=S.moving;S.plots[plot]=id;S.residents.push(id);S.moving=null;applyWorld();ensureRoom('plot'+plot);
+    S.letters.push({from:VDEF[id].name,body:VDEF[id].letter||'All moved in! Thank you for inviting me.',gifts:{[pick(VDEF[id].shop).id]:1}});S.flags.newArrival=id;}
+  S.weather=S.day===24?'snow':pick(['snow','snow','heavy','clear','clear','snow']);
+  const pool=VISITOR_IDS.filter(id=>!S.residents.includes(id)&&!(S.moving&&S.moving.id===id)&&id!==S.visitor);
+  S.visitor=S.day>=2&&pool.length&&rnd()<.85?pick(pool):null;
+  spawnForage();genRequests();
+  S.scene='cabin';S.px=3*16+8;S.py=5*16+4;S.face='down';
+  resetVillagers();prints.length=0;save();
+}
+function letterFor(day){
+  if(S.letters.length)return S.letters[0];
+  if(day===1)return{from:'Juniper, Lantern Hollow Post',body:"Welcome to Lantern Hollow! On the 24th we light the great tree in the square and send paper lanterns into the sky. Every neighbor helps decorate it with ornaments, garlands and wreaths. Your workbench and oven are right outside. Make your cabin your own, too: the Decorate button lets you arrange anything you own, indoors or out. Enclosed: pantry goods and ribbon from Bram, on the house.",gifts:{pantry:2,ribbon:2}};
+  if(day===2)return{from:'Pip',body:"yo. the pond is frozen solid. come by and i'll lend you a rod. bring snacks (optional) (not optional)",gifts:{},coins:10};
+  if(day===24)return{from:'Juniper',body:"Tonight is Lantern Night! Come to the great tree in the square after 5 in the evening. Hang anything you've made, then light it with all of us. Bring your wish.",gifts:{cocoa:1}};
+  const pool=[
+    {from:'Maple',body:"A little something from the bakehouse to keep you warm.",gifts:{cocoa:1}},
+    {from:'Bram',body:"Found these in the back. Inventory says they're yours now. Don't make it weird.",gifts:{pinecone:3,ribbon:1}},
+    {from:'Clementine',body:"I drew you a snowman!! He is you. Also here are snowballs I made. Don't eat them.",gifts:{snowball:2}},
+    {from:'Juniper',body:"A refund, apparently. Bram says he overcharged someone and couldn't remember who, so he's refunding everyone.",gifts:{},coins:25},
+    {from:'Maple',body:"Spare pantry sack. I bought too much again. Bake something nice.",gifts:{pantry:1}},
+    {from:'Pip',body:"caught too many. here. it's fine. it's fine.",gifts:{trout:1}},
+    {from:'Juniper',body:"The old pines dropped some holly near my office. I gathered a little for you.",gifts:{holly:2}},
+    {from:'Bram',body:"Coins. For being a reliable customer. Spend them at my shop.",gifts:{},coins:30},
+    {from:'Clementine',body:"I found chestnuts! Mom says roast them. I say throw them. You decide.",gifts:{chestnut:3}}
+  ];
+  return pool[Math.floor(hash2(day,77)*pool.length)];
+}
+
+// ---------- AUDIO
+const AU={ctx:null,on:true,next:0,step:0,noise:null};
+try{const p=JSON.parse(localStorage.getItem(PREF_KEY)||'{}');if(p.music===false)AU.on=false;}catch(e){}
+const MELODY=[74,71,67,71,72,69,66,69,71,67,64,67,69,0,62,0, 74,76,74,71,72,74,72,69,71,72,71,67,67,0,0,0,
+  76,79,76,74,72,76,72,69,71,74,71,67,66,69,72,74, 79,0,76,74,72,0,71,69,67,71,74,71,67,0,0,0];
+const BASS=[43,50,52,50,43,45,40,43,48,45,43,50,48,50,43,43];
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+function auInit(){if(AU.ctx)return;try{const C=window.AudioContext||window.webkitAudioContext;AU.ctx=new C();
+  AU.master=AU.ctx.createGain();AU.master.gain.value=.6;AU.master.connect(AU.ctx.destination);
+  AU.music=AU.ctx.createGain();AU.music.gain.value=AU.on?.22:0;AU.music.connect(AU.master);
+  AU.sfx=AU.ctx.createGain();AU.sfx.gain.value=.5;AU.sfx.connect(AU.master);
+  const b=AU.ctx.createBuffer(1,AU.ctx.sampleRate*.3,AU.ctx.sampleRate),ch=b.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;AU.noise=b;
+  AU.next=AU.ctx.currentTime+.3;setInterval(auSched,100);}catch(e){AU.ctx=null;}}
+function tone(m,t,dur,type,vol,dest){if(!AU.ctx)return;const o=AU.ctx.createOscillator(),g=AU.ctx.createGain();o.type=type;o.frequency.value=mtof(m);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.05);}
+function auSched(){const c=AU.ctx;if(!c||!AU.on)return;if(AU.next<c.currentTime)AU.next=c.currentTime+.05;
+  while(AU.next<c.currentTime+.4){const i=AU.step%MELODY.length,n=MELODY[i];
+    if(n){tone(n,AU.next,1.5,'sine',.16,AU.music);tone(n+12,AU.next,.5,'sine',.05,AU.music);}
+    if(i%4===0)tone(BASS[(i/4|0)%BASS.length],AU.next,1.4,'triangle',.07,AU.music);
+    AU.next+=.34;AU.step++;}}
+function noise(t,type,freq,vol,dur){const c=AU.ctx,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.noise;f.type=type;f.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(AU.sfx);s.start(t);s.stop(t+.3);}
+function sfx(kind){const c=AU.ctx;if(!c)return;const t=c.currentTime;
+  const seq={pick:[[84,0],[91,.07]],coin:[[88,0],[95,.06],[100,.12]],bad:[[57,0],[53,.1]],catch:[[79,0],[83,.07],[86,.14],[91,.21]],open:[[76,0],[83,.08]],bite:[[96,0]],
+    place:[[72,0],[79,.05]],lift:[[79,0],[72,.05]],style:[[86,0],[88,.04]],door:[[64,0],[67,.06]],bells:[[96,0],[100,.05],[98,.1],[103,.15],[100,.2]]}[kind];
+  if(seq){for(const [m,d] of seq)tone(m,t+d,kind==='bells'?.5:.35,kind==='bad'?'triangle':'sine',.2,AU.sfx);return;}
+  if(kind==='step')noise(t,'lowpass',900,.05,.06);
+  if(kind==='splash')noise(t,'bandpass',1400,.25,.3);
+  if(kind==='chop'){noise(t,'lowpass',500,.4,.12);noise(t+.18,'lowpass',400,.3,.2);}
+  if(kind==='music')MELODY.slice(0,16).forEach((n,i)=>{if(n)tone(n+12,t+i*.18,.8,'sine',.14,AU.sfx);});}
+function setMusic(on){AU.on=on;if(AU.music)AU.music.gain.value=on?.22:0;$('#bSound').textContent=on?'♪ On':'♪ Off';$('#bSound').setAttribute('aria-pressed',on);try{localStorage.setItem(PREF_KEY,JSON.stringify({music:on}));}catch(e){}}
+
+// ---------- CHARACTERS (runtime)
+const VR={};
+const tpx=a=>[a[0]*16+8,a[1]*16+12];
+const actors=()=>S.visitor&&!S.residents.includes(S.visitor)?[...S.residents,S.visitor]:S.residents;
+function gatherSpots(){const L=[];for(let k=0;k<24&&L.length<14;k++){const a=Math.PI*(.05+k/24*1.9)+Math.PI*.5,x=Math.round(400+Math.cos(a)*58),y=Math.round(292+Math.sin(a)*34);
+  if(boxFree('village',x,y))L.push([x,y]);}return L.length?L:[[400,330]];}
+function whereIs(id,t){
+  const d=VDEF[id],acts=actors();
+  if(festivalEvening()&&acts.includes(id))return{scene:'village',fest:1};
+  if(d.visitor&&!S.residents.includes(id))return id===S.visitor&&t>=540&&t<1140?{scene:'village',a:[23,14]}:null;
+  const sched=d.visitor?(()=>{const p=PLOTS[S.plots.indexOf(id)];return [[540,1080,'village',[p.x+3,p.y+4]]];})():d.sched;
+  for(const s of sched)if(t>=s[0]&&t<s[1])return{scene:s[2],a:s[3]};
+  if(t>=360&&t<BEDTIME)return{scene:homeScene(id),a:[5,5],home:1};
+  return null;}
+function entryPos(id,scene){if(scene!=='village')return [RDOOR[0]*16+8,(RH-2)*16+12];
+  const hs=homeScene(id),h=hs&&(hs==='igloo'?{x:IGLOO.x-1,y:IGLOO.y-2}:allHouses().find(h=>h.id===hs));
+  return h?[(h.x+2)*16+8,(h.y+4)*16+12]:null;}
+function resetVillagers(){for(const k in VR)delete VR[k];for(const id of ALL_IDS)VR[id]={id,scene:null,x:0,y:0,mode:'idle',wait:1,goal:null,stuck:0,moving:false,akey:''};
+  updVillagers(0,true);}
+let gatherCache=null;
+function updVillagers(dt,snap){
+  const acts=actors();let gi=0;if(snap||!gatherCache||rnd()<.002)gatherCache=gatherSpots();
+  for(const id of ALL_IDS){const v=VR[id];
+    if(!acts.includes(id)){v.scene=null;continue;}
+    const w=whereIs(id,S.time);
+    if(!w){v.scene=null;continue;}
+    const goal=w.fest?gatherCache[gi++%gatherCache.length]:tpx(w.a),key=w.scene+goal.join();
+    if(v.scene!==w.scene){v.scene=w.scene;const e=snap?goal:(entryPos(id,w.scene)||goal);v.x=e[0];v.y=e[1];v.mode='go';v.goal=goal;v.akey=key;}
+    if(v.akey!==key){v.akey=key;v.mode='go';v.goal=goal;}
+    v.moving=false;if(!dt)continue;
+    if(S.scene===v.scene&&Math.hypot(S.px-v.x,S.py-v.y)<22)continue;
+    if(v.mode==='idle'){if(w.fest)continue;v.wait-=dt;if(v.wait<=0){const r=v.scene==='village'?36:20,g=[goal[0]+ri(-r,r),goal[1]+ri(-r*.7,r*.7)];
+      if(boxFree(v.scene,g[0],g[1])){v.goal=g;v.mode='go';}else v.wait=1;}continue;}
+    const dx=v.goal[0]-v.x,dy=v.goal[1]-v.y,dist=Math.hypot(dx,dy);
+    if(dist<2){v.mode='idle';v.wait=2+rnd()*4;continue;}
+    const sp=Math.min(dist,26*dt),mx=dx/dist*sp,my=dy/dist*sp;let moved=false;
+    if(boxFree(v.scene,v.x+mx,v.y+my)){v.x+=mx;v.y+=my;moved=true;}else if(boxFree(v.scene,v.x+mx,v.y)){v.x+=mx;moved=true;}else if(boxFree(v.scene,v.x,v.y+my)){v.y+=my;moved=true;}
+    v.moving=moved;
+    if(!moved){v.stuck+=dt;if(v.stuck>1.2){v.stuck=0;if(boxFree(v.scene,v.goal[0],v.goal[1])){v.x=v.goal[0];v.y=v.goal[1];}else{v.mode='idle';v.wait=1.5;}}}else v.stuck=0;}
+}
+
+// ---------- TASKS (onboarding with small rewards)
+const TASKS=[
+  ['mail','Read the letter in your mailbox',20,()=>S.mailRead||S.day>1],
+  ['inside','Step inside your cabin',10,()=>S.flags.inCabin],
+  ['meet','Meet the five neighbors',50,()=>BASE_IDS.every(id=>S.friends[id].met)],
+  ['craft','Craft something at the workbench',20,()=>S.stats.crafted>0],
+  ['tree','Hang a decoration on the great tree',30,()=>S.treePts>0],
+  ['place','Place a decoration with Decorate',30,()=>S.stats.placed>0],
+  ['restyle','Restyle a decoration',20,()=>S.stats.restyled>0],
+  ['fish','Catch a fish',20,()=>Object.keys(S.fishLog).some(k=>ITEMS[k].fish)],
+  ['wish','Fill a wish on the wish board',30,()=>S.stats.wishes>0],
+  ['visit',"Visit a neighbor's home",20,()=>S.flags.visited],
+  ['visitor','Meet a traveling visitor',20,()=>VISITOR_IDS.some(id=>S.friends[id].met)],
+  ['newcomer','Welcome a new neighbor to the hollow',100,()=>S.residents.length>5],
+  ['full','Fill all 30 lights on the great tree',150,()=>S.treePts>=TREE_GOAL],
+  ['trip','Take a sled trip to a mystery island',40,()=>(S.stats.trips||0)>0],
+  ['night','Celebrate Lantern Night',100,()=>S.festivalDone]
+];
+function checkTasks(){for(const [id,txt,rw,fn] of TASKS){if(S.tasks[id]||!fn())continue;S.tasks[id]=1;addCoins(rw);sfx('coin');toast('Task done: '+txt+' (+'+rw+')','coin');}}
+const nextTask=()=>{const t=TASKS.find(([id])=>!S.tasks[id]);return t?t[1]:null;};
+
+// ---------- PLAYER & WORLD UPDATE
+const keys={},JOY={x:0,y:0,on:false};
+const prints=[],smoke=[],skyL=[],puffs=[];
+let vx=0,vy=0,walking=false,animT=0,stepT=0,printD=0,target=null,saveT=0,smokeT=0,taskT=0;
+function timeStr(t){const m=Math.floor(t/10)*10,hh=Math.floor(m/60)%24,mm=m%60;return `${(hh%12)||12}:${String(mm).padStart(2,'0')} ${hh<12?'AM':'PM'}`;}
+function update(dt){
+  S.time+=dt/MIN_SEC;
+  if(S.time>=PASS_OUT){sleep(true);return;}
+  updVillagers(dt);
+  let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),iy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+  if(JOY.on){ix=JOY.x;iy=JOY.y;}
+  const m=Math.hypot(ix,iy);if(m>1){ix/=m;iy/=m;}
+  const sc=S.scene,onIce=sc==='village'&&tileAt(S.px,S.py)===3,sp=keys.shift?112:74,k=onIce?1.6:16;
+  vx+=(ix*sp-vx)*Math.min(1,dt*k);vy+=(iy*sp-vy)*Math.min(1,dt*k);
+  const ox=S.px,oy=S.py;
+  if(boxFree(sc,S.px+vx*dt,S.py))S.px+=vx*dt;else vx=0;
+  if(boxFree(sc,S.px,S.py+vy*dt))S.py+=vy*dt;else vy=0;
+  if(m>.2)S.face=Math.abs(ix)>Math.abs(iy)?(ix>0?'right':'left'):(iy>0?'down':'up');
+  const moved=Math.hypot(S.px-ox,S.py-oy);walking=moved>.15&&m>.2;
+  if(!OUT(sc)&&S.py>(RH-1)*16+6){exitRoom();return;}
+  if(sc==='village'&&moved>0&&!onIce&&tileAt(S.px,S.py)===0){printD+=moved;if(printD>7){printD=0;prints.push({x:S.px+(prints.length%2?2:-3),y:S.py-1,a:1});if(prints.length>220)prints.shift();}}
+  if(walking&&!onIce){stepT-=dt;if(stepT<=0){stepT=keys.shift?.22:.3;if(sc==='village')sfx('step');}}
+  target=DEC.on?null:findTarget();
+  taskT+=dt;if(taskT>1){taskT=0;checkTasks();}
+  saveT+=dt;if(saveT>15){saveT=0;save();}
+}
+function particles(dt){
+  for(const p of prints)p.a-=dt/40;while(prints.length&&prints[0].a<=0)prints.shift();
+  smokeT-=dt;if(smokeT<=0){smokeT=.35;for(const h of allHouses())smoke.push({x:h.ox+64+rnd()*3,y:h.oy+4,vx:4+rnd()*4,vy:-9-rnd()*5,life:0,max:3+rnd()*2});}
+  for(const s of smoke){s.life+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;}
+  while(smoke.length&&smoke[0].life>smoke[0].max)smoke.shift();
+  for(const p of puffs){p.life+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=40*dt;}
+  while(puffs.length&&puffs[0].life>.7)puffs.shift();
+  for(const l of skyL){l.t+=dt;l.y-=l.vy*dt;l.x+=Math.sin(l.t*.8+l.ph)*6*dt;}
+  while(skyL.length&&skyL[0].y<skyL[0].y0-460)skyL.shift();
+  for(const f of flakes){f.y+=f.s*dt;f.x+=Math.sin(animT*.9+f.p)*f.w*dt+(S&&S.weather==='heavy'?14*dt:0);
+    if(f.y>vh+2){f.y=-2;f.x=Math.random()*vw;}if(f.x>vw+2)f.x=-2;if(f.x<-2)f.x=vw+2;}
+}
+function burst(x,y,col,n=10){for(let i=0;i<n;i++)puffs.push({x,y,vx:(rnd()-.5)*50,vy:-20-rnd()*40,life:rnd()*.2,col});}
+
+// ---------- SCENES
+let transOpen=false;
+function transition(fn){transOpen=true;const f=$('#fade');f.hidden=false;$('#fadeCard').hidden=true;requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('show')));
+  setTimeout(()=>{fn();snapCam=true;f.classList.remove('show');setTimeout(()=>{f.hidden=true;transOpen=false;},350);},330);}
+function enterRoom(sc){sfx('door');transition(()=>{ensureRoom(sc);rebuildOcc(sc);S.scene=sc;S.px=RDOOR[0]*16+8;S.py=(RH-2)*16+12;S.face='up';vx=vy=0;
+  if(sc==='cabin')S.flags.inCabin=1;else S.flags.visited=1;});}
+function exitRoom(){const sc=S.scene;sfx('door');transition(()=>{let st;
+  if(sc==='igloo')st=[IGLOO.x+1,IGLOO.y+2];else{const h=allHouses().find(h=>h.id===sc);st=h?[h.x+2,h.y+4]:[7,8];}
+  S.scene='village';S.px=st[0]*16+8;S.py=st[1]*16+12;S.face='down';vx=vy=0;});}
+function wake(){const b=(S.decor.cabin||[]).find(o=>o.id==='bed');S.scene='cabin';S.face='down';
+  const C=b?[[b.x,b.y+1],[b.x+1,b.y+1],[b.x+2,b.y],[b.x-1,b.y],[b.x,b.y-1]]:[];C.push([RDOOR[0],RH-2]);
+  for(const [x,y] of C){const p=tpx([x,y]);if(boxFree('cabin',p[0],p[1])){S.px=p[0];S.py=p[1];return;}}}
+
+// ---------- INTERACTION
+const ACT_LABEL={sleep:'Sleep until morning',sit:'Sit a while',music:'Open the music box',bells:'Ring the sleigh bells',clock:'Check the clock',warm:'Warm your hands',mail:'Check the mailbox',craft:'Use the workbench',bake:'Bake at the oven'};
+function decorCenter(o){const [w,h]=fp(o);return [(o.x+w/2)*16,(o.y+h/2)*16+(DECOR[o.id].where==='wall'?0:2)];}
+function cands(){
+  const L=[],sc=S.scene,add=(x,y,label,act,r)=>{if(Math.abs(x-S.px)<48&&Math.abs(y-S.py)<48)L.push({x,y,label,act,r});};
+  for(const id of ALL_IDS){const v=VR[id];if(v.scene===sc)add(v.x,v.y-6,'Talk to '+VDEF[id].name,()=>talkTo(id),26);}
+  for(const o of S.decor[sc]||[]){const a=DECOR[o.id].act;if(!a||(a==='sleep'&&sc!=='cabin'))continue;const [x,y]=decorCenter(o);
+    add(x,y,a==='mail'&&!S.mailRead?"Open today's letter":ACT_LABEL[a],()=>useDecor(a,o));}
+  if(sc==='island')return islandCands(L,add);
+  if(sc!=='village'){add(RDOOR[0]*16+8,RDOOR[1]*16+4,'Go outside',exitRoom);return L;}
+  S.items.forEach(it=>add(it.x*16+8,it.y*16+8,'Pick up '+ITEMS[it.id].name,()=>{S.items.splice(S.items.indexOf(it),1);give(it.id);sfx('pick');toast('+1 '+ITEMS[it.id].name,it.id);}));
+  BUSHES.forEach((b,i)=>{if(S.bushes[i].ready)add(b.x*16+8,b.y*16+8,b.type==='holly'?'Pick holly':'Pick snowberries',()=>{const id=b.type,n=ri(2,3);give(id,n);S.bushes[i].ready=false;S.bushes[i].regrow=S.day+2;sfx('pick');burst(b.x*16+8,b.y*16+4,b.type==='holly'?'#2f7a4a':'#ffffff');toast('+'+n+' '+ITEMS[id].name,id);});});
+  DRIFTS.forEach((d,i)=>{if(S.drifts[i])add(d.x*16+8,d.y*16+8,'Dig in the snowdrift',()=>{const n=ri(1,2);give('snowball',n);S.drifts[i]=false;sfx('pick');burst(d.x*16+8,d.y*16+10,'#ffffff');
+    toast('+'+n+' Snowball','snowball');if(rnd()<.3){give('ice');toast('+1 Ice Shard','ice');}});});
+  for(const h of allHouses())add((h.x+2)*16+8,(h.y+3)*16+10,h.id==='cabin'?'Go inside':'Knock on the door',()=>knock(h.id,h.owner));
+  add((IGLOO.x+1)*16+8,(IGLOO.y+1)*16+10,'Knock on the igloo',()=>knock('igloo','pip'));
+  PLOTS.forEach((p,i)=>{if(!S.plots[i])add((p.x+2)*16+8,(p.y+2)*16+8,'Read the sign',()=>say(null,S.moving&&S.moving.plot===i?`Fresh boards and a stack of crates. ${VDEF[S.moving.id].name} moves in tomorrow morning.`:'A plot waiting for a new neighbor. Traveling visitors stop in the square most days. Befriend one and invite them to move in.'));});
+  add(BOARD[0]*16+8,BOARD[1]*16+8,'Read the wish board',openBoard);
+  add(TREE_C.x,TREE_C.y-2,festivalEvening()?'Light the great tree':'Decorate the great tree',()=>festivalEvening()?startFestival():openTree());
+  for(const [x,y] of HOLES)add(x*16+8,y*16+8,'Fish here',startFishing);
+  if(S.hasAxe)for(const t of TREES){if(S.chopped.includes(t.i))continue;add(t.x*16+8,t.y*16+8,'Chop this pine',()=>chop(t));}
+  return L;
+}
+const FDIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+function findTarget(){const [fx,fy]=FDIR[S.face],ax=S.px+fx*10,ay=S.py-6+fy*10;let best=null,bd=1e9;
+  for(const c of cands()){const d=Math.hypot(c.x-ax,c.y-ay);if(d<(c.r||19)&&d<bd){bd=d;best=c;}}return best;}
+function act(){
+  if(titleOpen||fadeOpen||transOpen)return;
+  if(FI.active)return fishPress();
+  if(DLG.open)return dlgActivate();
+  if(modalOpen||FEST.active)return;
+  if(DEC.on)return decAct(decCursor());
+  if(target)target.act();
+}
+const addTime=m=>{S.time+=m;};
+function knock(sc,owner){
+  if(!owner)return enterRoom(sc);
+  const w=whereIs(owner,S.time),n=VDEF[owner].name;
+  if(w&&w.scene===sc){if(w.home||sc!=='store'){S.flags.lastHost=owner;}return enterRoom(sc);}
+  if(!w)return say(null,`The windows are dark. ${n} is fast asleep.`);
+  if(sc==='store')return say(null,'A sign on the door: "Open 8 to 8. Bram."');
+  say(null,`Nobody answers. ${n} is out and about somewhere in the hollow.`);
+}
+function useDecor(a,o){
+  if(a==='mail')return openMail();if(a==='craft')return openCraft('bench');if(a==='bake')return openCraft('oven');
+  if(a==='sleep')return say(null,'Climb into bed and end the day?',[{label:'Sleep',fn:()=>{closeDialog();sleep(false);}},{label:'Not yet',fn:closeDialog}]);
+  if(a==='sit')return fadeThen(()=>addTime(60),()=>`<p>You settle in and watch the snow for a while.</p><p style="color:var(--frost)">An hour slips by.</p>`,'Get up');
+  if(a==='music'){sfx('music');return toast('The music box plays a little waltz','musicbox');}
+  if(a==='bells'){sfx('bells');return toast('Jingle jingle','bells');}
+  if(a==='clock'){sfx('bite');return say(null,`The cuckoo clock says ${timeStr(S.time)}. Cuckoo.`);}
+  if(a==='warm'){const [x,y]=decorCenter(o);burst(x,y-6,'#ffb347',8);return toast('You warm your hands. Toasty.','cocoa');}
+}
+function chop(t){S.chopped.push(t.i);sol(t.x,t.y,0);give('wood',3);sfx('chop');burst(t.x*16+8,t.y*16,'#2f6a4c',16);addTime(15);
+  let msg='+3 Branch';if(rnd()<.5){give('pinecone');msg+=', +1 Pinecone';}if(t.x>=30&&rnd()<.5){give('chestnut',2);msg+=', +2 Chestnut';}toast(msg,'wood');}
+function sleep(passed){
+  fadeThen(()=>{newDay(passed);wake();},()=>{const dt=new Date(2026,11,S.day),wd=dt.toLocaleDateString('en-US',{weekday:'long'}),md=dt.toLocaleDateString('en-US',{month:'long',day:'numeric'});
+    const w={snow:'Soft snow is falling.',heavy:'A heavy snowfall blankets the hollow.',clear:'The sky is clear and cold.'}[S.weather];
+    const vis=S.visitor?`<p><img class="ico" src="${face(S.visitor)}" alt="" style="vertical-align:middle"> ${VDEF[S.visitor].name}, a ${VDEF[S.visitor].role.toLowerCase()}, is visiting the square today.</p>`:'';
+    const arr=S.flags.newArrival?`<p style="color:var(--gold)">${VDEF[S.flags.newArrival].name} moved into Lantern Hollow!</p>`:'';S.flags.newArrival=null;
+    return `${passed?'<p>You nodded off in the snow. Juniper spotted you on her late route and walked you home.</p>':''}<p style="color:var(--frost);margin:0">${wd}</p><h2>${md}</h2><p>${w}</p>${arr}${vis}<p>${countText()}</p>${S.stats.yesterday?`<p style="color:var(--gold)">Yesterday you earned ${S.stats.yesterday} coins.</p>`:''}`;},'Start the day');
+}
+function countText(){if(S.festivalDone)return 'Winter in the hollow.';const d=daysLeft();
+  return d>1?`${d} days until Lantern Night`:d===1?'Lantern Night is tomorrow':'Lantern Night: tonight at the great tree, after 5 PM';}
+
+// ---------- TALK
+function chooseLine(id){const v=VDEF[id],sit=[];
+  if(S.festivalDone)sit.push(v.after);else if(daysLeft()<=3)sit.push(v.soon);
+  if(S.weather==='heavy')sit.push(v.heavy);if(S.time>=1080)sit.push(v.night);
+  if(S.scene!=='village'&&v.home&&rnd()<.5)return v.home;
+  if(sit.length&&rnd()<.5)return pick(sit);
+  const h=hearts(id),L=v.lines;return pick(L[Math.min(L.length-1,h>=4?2:h>=2?1:0)]);}
+function learn(r){if(S.recipes.includes(r))return;S.recipes.push(r);toast('New recipe: '+ITEMS[r].name,r);sfx('open');}
+function events(id){const E=[],h=hearts(id),f=S.flags;
+  if(id==='maple'&&h>=1&&!S.recipes.includes('tart'))E.push(()=>{learn('tart');return "You've earned this. My snowberry tart recipe! Pantry goods and two snowberries, baked at your oven.";});
+  if(id==='maple'&&h>=3&&!S.recipes.includes('cookie'))E.push(()=>{learn('cookie');return "The secret to my pine-nut cookies: pinecones. Well, the nuts inside. Don't tell Bram how easy it is.";});
+  if(id==='pip'&&h>=2&&!S.recipes.includes('pie'))E.push(()=>{learn('pie');return "Okay bud, you're family now. Trout pie. Pantry goods plus one silver trout. Changes lives.";});
+  if(id==='pip'&&h>=4&&!S.recipes.includes('chowder'))E.push(()=>{learn('chowder');return "Char chowder. My grandma's. One arctic char, one pantry sack. Guard it with your life.";});
+  if(id==='clem'&&h>=2&&!S.recipes.includes('ginghouse'))E.push(()=>{learn('ginghouse');return "Mom's gingerbread house recipe! Two gingerbread pals and pantry goods. Don't eat the walls. Okay, ONE wall.";});
+  if(id==='pip'&&S.friends.pip.met&&!f.pipTicket&&(S.day>=2||S.hasRod&&S.fishLog&&Object.keys(S.fishLog).length))E.push(()=>{f.pipTicket=1;give('ticket',2);toast('+2 Sled Tickets','ticket');return "Psst. Past the pond the ice runs all the way out to sea. My sled can get you to the islands out there. Every trip lands somewhere new. Here, two tickets. Bram sells more.";});
+  if(id==='juniper'&&h>=3&&!f.junMist)E.push(()=>{f.junMist=1;give('mistletoe',2);toast('+2 Mistletoe','mistletoe');return "I found these on my route and thought of you. Hoo. Don't read into it.";});
+  if(id==='bram'&&h>=2&&!f.bramDeal)E.push(()=>{f.bramDeal=1;return "Tell you what. Pantry goods are 8 coins for you from now on. Don't spread it around.";});
+  if(id==='clem'){const sm=S.decor.village.filter(p=>p.id==='snowman').length;
+    if(sm>=1&&!f.clem1)E.push(()=>{f.clem1=1;addPts('clem',10);return "You built a snowman! It's the best one I've ever seen. Second best. I made the first one in my head.";});
+    if(sm>=3&&!f.clem3)E.push(()=>{f.clem3=1;addPts('clem',10);give('ginger');toast('+1 Gingerbread Pal','ginger');return "THREE snowmen! Here, take my gingerbread pal. His name is Gary. Be nice to Gary.";});
+    if(sm>=5&&!f.clem5)E.push(()=>{f.clem5=1;addPts('clem',15);addCoins(50);sfx('coin');return "FIVE. You're officially in the Snowman Club. Here are my savings! (50 coins)";});}
+  return E;}
+function canInvite(id){return VDEF[id].visitor&&!S.residents.includes(id)&&!S.moving&&S.plots.includes(null)&&S.friends[id].pts>=10;}
+function talkTo(id){const v=VDEF[id],f=S.friends[id];let text;const steps=[];
+  if(!f.met){f.met=true;f.talked=true;addPts(id,4);text=v.intro;
+    if(id==='pip')steps.push(()=>{S.hasRod=true;toast("Got Pip's spare fishing rod",'rod');sfx('open');return "Here, take my spare rod. The holes in the ice are always open. Golden carp only bite after dark.";});
+    if(v.teach)steps.push(()=>{learn(v.teach);return v.teachLine;});}
+  else if(!f.talked){f.talked=true;addPts(id,3);text=chooseLine(id);}else text=pick(v.again);
+  if(v.visitor&&!S.residents.includes(id)&&f.pts>=10&&S.plots.includes(null)&&!S.moving&&!f.hinted){f.hinted=1;steps.push("You know... this hollow is lovely. A traveler could get used to a place like this.");}
+  steps.unshift(text);steps.push(...events(id));
+  const show=i=>{const t=typeof steps[i]==='function'?steps[i]():steps[i];say(id,t,i===steps.length-1?talkMenu(id):[{label:'…',fn:()=>show(i+1)}]);};
+  show(0);}
+function talkMenu(id){const o=[],v=VDEF[id];
+  if(!S.friends[id].gifted)o.push({label:'Give a gift',fn:()=>{closeDialog();openGift(id);}});
+  if(v.shop&&(id!=='bram'||S.scene==='store'))o.push({label:id==='bram'?'Buy':'Browse wares',fn:()=>{closeDialog();openShop(id);}});
+  if(id==='bram'&&S.scene==='store')o.push({label:'Sell',fn:()=>{closeDialog();openSell();}});
+  if(canInvite(id))o.push({label:'Invite to move in',fn:()=>{const plot=S.plots.indexOf(null);S.moving={id,plot};sfx('catch');
+    say(id,v.invite+` I'll take the plot ${PLOTS[plot].name}.`,[{label:'Wonderful',fn:closeDialog}]);}});
+  if(id==='pip'&&S.scene==='village')o.push({label:'Take a sled trip'+(has('ticket')?` (${S.inv.ticket} ticket${S.inv.ticket>1?'s':''})`:''),fn:goIsland});
+  o.push({label:'Goodbye',fn:closeDialog});return o;}
+function homePlace(home,item){ensureRoom(home);const d=DECOR[item];if(!d||d.where==='out')return false;
+  for(let k=0;k<80;k++){const x=ri(1,RW-2),y=d.where==='wall'?1:ri(2,RH-2);if(canPlace(home,item,x,y)){S.decor[home].push({id:item,x,y,v:ri(0,d.vars.length-1)});rebuildOcc(home);return true;}}return false;}
+function giftTo(id,item){const v=VDEF[id];closeModal();take(item);S.friends[id].gifted=true;
+  let line,n;
+  if(id==='clem'&&item==='mitten'){n=30;line="MY MITTEN! You found it! I thought a fish ate it. Was it a fish? Don't tell me.";}
+  else if(v.loves.includes(item)){n=15;line=v.love;const k=(S.flags['k_'+id]=S.flags['k_'+id]||[]);if(!k.includes(item))k.push(item);}
+  else if(v.likes.includes(item)){n=8;line=v.like;}else{n=3;line=v.ok;}
+  const home=S.residents.includes(id)&&homeScene(id);
+  if(home&&DECOR[item]&&homePlace(home,item))line+=' '+v.decorGift;
+  addPts(id,n);sfx(n>=15?'catch':'open');
+  say(id,line,[{label:'…',fn:()=>{const E=events(id);if(E.length){const run=i=>say(id,E[i](),i===E.length-1?[{label:'Goodbye',fn:closeDialog}]:[{label:'…',fn:()=>run(i+1)}]);run(0);}else closeDialog();}}]);}
+
+// ---------- FISHING
+const FI={active:false};
+function startFishing(){
+  if(!S.hasRod)return say(null,'You need a fishing rod. Pip, by the pond, might lend you one.');
+  Object.assign(FI,{active:true,phase:'wait',t:0,wait:1.2+rnd()*2.6,pos:0,dir:1});
+  $('#fish').hidden=false;$('#fishMsg').textContent='Waiting for a nibble…';$('#fishZone').style.width='0';$('#fishMarker').hidden=true;
+  $('#fishHint').textContent='Wait for the bite, then press E, Space or tap.';sfx('splash');}
+function rollFish(){const night=S.time>=1080||S.time<420;const T=[['minnow',36],['perch',night?8:22],['trout',night?10:20],['char',8],['pike',10],['carp',night?5:0],['ice',7],['antique',2]];
+  if(!S.flags.mitten)T.push(['mitten',4]);const tot=T.reduce((a,b)=>a+b[1],0);let r=rnd()*tot;for(const [id,w] of T){if((r-=w)<0)return id;}return 'minnow';}
+const FZ={minnow:[.32,.9],perch:[.28,1],trout:[.24,1.2],char:[.19,1.4],pike:[.16,1.6],carp:[.11,2.1],mitten:[.3,.8],ice:[.34,.7],antique:[.14,1.7]};
+function fishUpdate(dt){FI.t+=dt;
+  if(FI.phase==='wait'&&FI.t>FI.wait){FI.phase='bite';FI.t=0;$('#fishMsg').textContent='!! Something bit !!';sfx('bite');}
+  else if(FI.phase==='bite'&&FI.t>.95)fishEnd('It nibbled and swam off.');
+  else if(FI.phase==='reel'){FI.pos+=FI.dir*FI.speed*dt;if(FI.pos>1){FI.pos=1;FI.dir=-1;}if(FI.pos<0){FI.pos=0;FI.dir=1;}
+    $('#fishMarker').style.left=(FI.pos*100)+'%';if(FI.t>5)fishEnd('The line went slack.');}
+  else if(FI.phase==='done'&&FI.t>1.6){FI.active=false;$('#fish').hidden=true;}}
+function fishPress(){
+  if(FI.phase==='wait')return fishEnd('Too eager. The fish scattered.');
+  if(FI.phase==='bite'){FI.phase='reel';FI.t=0;FI.fish=rollFish();const [z0,sp]=FZ[FI.fish],z=z0+(S.sturdy?.06:0);
+    FI.speed=sp;FI.zone=[rnd()*(1-z),0];FI.zone[1]=FI.zone[0]+z;
+    $('#fishZone').style.left=FI.zone[0]*100+'%';$('#fishZone').style.width=z*100+'%';$('#fishMarker').hidden=false;
+    $('#fishMsg').textContent='Reel it in!';$('#fishHint').textContent='Press again when the marker is in the gold zone.';return;}
+  if(FI.phase==='reel'){if(FI.pos>=FI.zone[0]&&FI.pos<=FI.zone[1]){const id=FI.fish;give(id);if(id==='mitten')S.flags.mitten=1;
+      S.fishLog[id]=(S.fishLog[id]||0)+1;sfx('catch');toast('Caught: '+ITEMS[id].name,id);
+      fishEnd(id==='mitten'?'A little red mitten? Someone must be missing this.':id==='antique'?'An old glass bauble from the bottom of the pond!':id==='ice'?'Just a chunk of ice. Still useful.':'You caught a '+ITEMS[id].name+'!',true);}
+    else fishEnd('It wriggled free.');}}
+function fishEnd(msg,ok){FI.phase='done';FI.t=0;$('#fishMsg').textContent=msg;$('#fishHint').textContent='';if(!ok)sfx('bad');addTime(10);}
+
+// ---------- FESTIVAL
+const FEST={active:false,t:0,glow:0,banner:false};
+function startFestival(){FEST.active=true;FEST.t=0;FEST.banner=false;$('#prompt').hidden=true;sfx('catch');}
+function festUpdate(dt){FEST.t+=dt;FEST.glow=Math.min(1,FEST.t/3);
+  if(FEST.t>1.5&&FEST.t<14&&rnd()<dt*7)spawnSky(TREE_C.x+ri(-110,110),TREE_C.y+ri(-10,50));
+  if(FEST.t>3.5&&!FEST.banner){FEST.banner=true;showBanner();}}
+function spawnSky(x,y){skyL.push({x,y,y0:y,vy:12+rnd()*10,t:0,ph:rnd()*6});}
+function showBanner(){const p=S.treePts,tot=S.residents.reduce((a,id)=>a+hearts(id),0);
+  const msg=p>=30?'The great tree blazes like a captured star. The whole hollow cheers.':p>=15?'The tree glows warm and bright. Everyone gathers close.':p>=5?'A scatter of brave lights twinkles on the tree. It is the coziest kind of small.':'One stubborn light flickers on, then another. Maple starts to clap, and everyone joins in.';
+  const b=$('#banner');b.hidden=false;
+  b.innerHTML=`<div class="knit" style="margin:-22px -22px 12px"></div><p class="eyebrow">December 24</p><h2>Lantern Night</h2><p>${msg}</p>
+   <p style="color:var(--frost)">Lights on the tree: ${Math.min(p,TREE_GOAL)} of ${TREE_GOAL} · ${S.residents.length} neighbors · ${tot} hearts</p>
+   <label for="wishIn" style="display:block;margin-top:12px;font-weight:600">Write a wish on your lantern</label>
+   <input id="wishIn" maxlength="70" placeholder="I wish…" autocomplete="off"><button class="btn primary" id="wishGo">Release your lantern</button>`;
+  $('#wishGo').onclick=()=>{S.wish=($('#wishIn').value||'').trim();for(let i=0;i<6;i++)spawnSky(S.px+ri(-6,6),S.py-10-i*8);sfx('coin');
+    b.innerHTML=`<div class="knit" style="margin:-22px -22px 12px"></div><h2>Merry, merry</h2><p>Your lantern drifts up with all the others${S.wish?`, carrying “${esc(S.wish)}”`:''}.</p><p style="color:var(--frost)">The hollow is yours to wander for the rest of winter.</p><button class="btn primary" id="festDone">Keep wandering</button>`;
+    $('#festDone').onclick=()=>{b.hidden=true;FEST.active=false;S.festivalDone=true;save();};};
+  setTimeout(()=>{const w=$('#wishIn');if(w)w.focus();},50);}
+
+// ---------- MYSTERY ISLANDS (sled trips across the frozen sea)
+const OUT=s=>s==='village'||s==='island';
+const ISL={w:32,h:24,solid:null};
+const ISLAND_THEMES=[
+  {name:'Pinecone Isle',snow:[232,239,247],trees:.16,res:{pinecone:10,wood:6,chestnut:3},bush:['holly','holly','snowberry'],rare:['mistletoe','mistletoe']},
+  {name:'Bramble Berry Isle',snow:[238,236,246],trees:.07,res:{wood:4,pinecone:3},bush:['snowberry','snowberry','holly','holly','snowberry','holly'],rare:['antique']},
+  {name:'Crystal Isle',snow:[222,236,250],trees:.05,res:{ice:10,wood:3},bush:['snowberry'],rare:['antique','ice']},
+  {name:'Chestnut Grove',snow:[236,238,242],trees:.13,res:{chestnut:12,wood:5},bush:['holly'],rare:['mistletoe']},
+  {name:'Driftwood Isle',snow:[234,240,246],trees:.04,res:{wood:14,ribbon:2},bush:['snowberry','holly'],rare:['antique','ribbon']}
+];
+function genIsland(){
+  const th=pick(ISLAND_THEMES),w=ISL.w,h=ISL.h,seed=ri(1,99999),land=new Uint8Array(w*h),sol2=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const d=((x+.5-w/2)/(w/2-2.5))**2+((y+.5-h/2)/(h/2-2.5))**2+(vnoise(x/4+seed,y/4)-.5)*.7;land[y*w+x]=d<1?1:0;sol2[y*w+x]=d<1?0:1;}
+  Object.assign(ISL,{theme:th,land,solid:sol2,trees:[],bushes:[],drifts:[],items:[],rocks:[]});
+  let ax=Math.floor(w/2),ay=h-3;while(ay>2&&!land[ay*w+ax])ay--;ISL.sled=[ax,ay];sol2[ay*w+ax]=1;
+  const free=(x,y)=>x>0&&y>0&&x<w-1&&y<h-1&&land[y*w+x]&&!sol2[y*w+x]&&Math.hypot(x-ax,y-ay)>2.5&&!ISL.items.some(i=>i.x===x&&i.y===y)&&!ISL.drifts.some(d=>d.x===x&&d.y===y);
+  const spots=[];for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(free(x,y))spots.push([x,y]);
+  for(let i=spots.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[spots[i],spots[j]]=[spots[j],spots[i]];}
+  let k=0;const next=()=>{while(k<spots.length){const s=spots[k++];if(free(s[0],s[1]))return s;}return null;};
+  ISL.hole=next();if(ISL.hole)sol2[ISL.hole[1]*w+ISL.hole[0]]=1;
+  const nTrees=Math.round(spots.length*th.trees);for(let i=0;i<nTrees;i++){const s=next();if(!s)break;ISL.trees.push({x:s[0],y:s[1],v:ri(0,2)});sol2[s[1]*w+s[0]]=1;}
+  for(const b of th.bush){const s=next();if(!s)break;ISL.bushes.push({x:s[0],y:s[1],type:b,ready:true});sol2[s[1]*w+s[0]]=1;}
+  for(let i=0;i<ri(2,4);i++){const s=next();if(!s)break;ISL.rocks.push({x:s[0],y:s[1]});sol2[s[1]*w+s[0]]=1;}
+  for(let i=0;i<ri(4,7);i++){const s=next();if(!s)break;ISL.drifts.push({x:s[0],y:s[1],on:true});}
+  for(const [id,n] of Object.entries(th.res))for(let i=0;i<n;i++){const s=next();if(!s)break;ISL.items.push({x:s[0],y:s[1],id});}
+  for(const id of th.rare)if(rnd()<.75){const s=next();if(s)ISL.items.push({x:s[0],y:s[1],id});}
+  const c=mk(w*16,h*16),g=c.getContext('2d'),img=g.createImageData(w*16,h*16),d=img.data,[sr,sg,sb]=th.snow;
+  for(let y=0;y<h*16;y++)for(let x=0;x<w*16;x++){const tx=x>>4,ty=y>>4,L=land[ty*w+tx];let col;
+    if(L){const n=vnoise(x/30+seed,y/30)*.6+vnoise(x/10,y/10)*.4,s=(n-.5)*22,hh=hash2(x,y+seed);col=hh<.012?[255,255,255]:[sr+s,sg+s,sb+s*.4];
+      const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{const nx=tx+dx,ny=ty+dy;return nx<0||ny<0||nx>=w||ny>=h||!land[ny*w+nx];});
+      if(edge){const lx=x&15,ly=y&15,dd=Math.min(lx,15-lx,ly,15-ly);if(dd<2+vnoise(x/3,y/3)*3)col=[200,222,238];}}
+    else{const wv=Math.sin(x*.2+y*.35)*vnoise(x/16+seed,y/16);col=[30+wv*14,62+wv*20,90+wv*24];if(hash2(x,y)<.004)col=[200,230,250];}
+    const o=(y*w*16+x)*4;d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=255;}
+  g.putImageData(img,0,0);
+  if(ISL.hole){const [hx,hy]=ISL.hole;g.fillStyle='#bfe0ef';g.beginPath();g.ellipse(hx*16+8,hy*16+9,7,5,0,0,7);g.fill();g.fillStyle='#173a5c';g.beginPath();g.ellipse(hx*16+8,hy*16+9,5,3.5,0,0,7);g.fill();}
+  ISL.ground=c;}
+function goIsland(){if(!has('ticket'))return say('pip',"You'll need a sled ticket, bud. Bram sells them.");
+  take('ticket');closeDialog();sfx('bells');
+  transition(()=>{genIsland();S.scene='island';S.px=ISL.sled[0]*16+8;S.py=(ISL.sled[1]+1)*16+12;S.face='up';vx=vy=0;addTime(30);S.stats.trips=(S.stats.trips||0)+1;
+    setTimeout(()=>toast('Welcome to '+ISL.theme.name+'!','ticket'),400);});}
+function leaveIsland(){sfx('bells');transition(()=>{S.scene='village';S.px=14*16+8;S.py=22*16+12;S.face='down';vx=vy=0;addTime(30);});}
+function islandCands(L,add){
+  ISL.items.forEach(it=>add(it.x*16+8,it.y*16+8,'Pick up '+ITEMS[it.id].name,()=>{ISL.items.splice(ISL.items.indexOf(it),1);give(it.id);sfx('pick');toast('+1 '+ITEMS[it.id].name,it.id);}));
+  ISL.bushes.forEach(b=>{if(b.ready)add(b.x*16+8,b.y*16+8,b.type==='holly'?'Pick holly':'Pick snowberries',()=>{const n=ri(3,4);give(b.type,n);b.ready=false;sfx('pick');burst(b.x*16+8,b.y*16+4,b.type==='holly'?'#2f7a4a':'#ffffff');toast('+'+n+' '+ITEMS[b.type].name,b.type);});});
+  ISL.drifts.forEach(d=>{if(d.on)add(d.x*16+8,d.y*16+8,'Dig in the snowdrift',()=>{d.on=false;give('snowball',2);sfx('pick');burst(d.x*16+8,d.y*16+10,'#ffffff');toast('+2 Snowball','snowball');if(rnd()<.5){give('ice');toast('+1 Ice Shard','ice');}});});
+  if(ISL.hole)add(ISL.hole[0]*16+8,ISL.hole[1]*16+8,'Fish here',startFishing);
+  if(S.hasAxe)ISL.trees.forEach(t=>add(t.x*16+8,t.y*16+8,'Chop this pine',()=>{ISL.trees.splice(ISL.trees.indexOf(t),1);ISL.solid[t.y*ISL.w+t.x]=0;give('wood',3);sfx('chop');burst(t.x*16+8,t.y*16,'#2f6a4c',16);toast('+3 Branch','wood');}));
+  add(ISL.sled[0]*16+8,ISL.sled[1]*16+8,'Ride the sled home',leaveIsland);
+  return L;}
+function drawIsland(push,LIT,night){
+  ctx.fillStyle='#1e3e5a';ctx.fillRect(0,0,vw,vh);ctx.drawImage(ISL.ground,-camX,-camY);
+  for(const t of ISL.trees)push(t.y*16+16,t.x*16,t.y*16,()=>{shadow(t.x*16+10,t.y*16+15,10);D(TREE_SPR[t.v],t.x*16-5,t.y*16-22);});
+  for(const r of ISL.rocks)push(r.y*16+15,r.x*16,r.y*16,()=>D(ART.rock,r.x*16-1,r.y*16+2));
+  for(const b of ISL.bushes)push(b.y*16+15,b.x*16,b.y*16,()=>D(ART.bush[b.type][b.ready?1:0],b.x*16-1,b.y*16+2));
+  for(const d of ISL.drifts)if(d.on)push(d.y*16+10,d.x*16,d.y*16,()=>D(ART.drift,d.x*16-1,d.y*16+6));
+  for(const it of ISL.items)push(it.y*16+12,it.x*16,it.y*16,()=>{shadow(it.x*16+8,it.y*16+13,4);D(ICONS[it.id],it.x*16+3,it.y*16+3);});
+  const [sx,sy]=ISL.sled;push(sy*16+15,sx*16,sy*16,()=>D(decorSprite('sled',0,0),sx*16-1,sy*16+6));
+  if(night)LIT.push([sx*16+8,sy*16+4,40,.9,'255,200,140']);}
+
+// ---------- UI
+const DLG={open:false,full:'',shown:0,opts:[],sel:0,timer:null};
+function say(who,text,opts){
+  DLG.open=true;DLG.full=text;DLG.shown=0;DLG.opts=opts||[{label:'Okay',fn:closeDialog}];DLG.sel=0;
+  const pc=$('#portrait'),px2=pc.getContext('2d');px2.clearRect(0,0,18,18);
+  if(who){pc.hidden=false;px2.drawImage(VSPR[who],0,0);$('#dlgName').innerHTML=VDEF[who].name+'<small>'+VDEF[who].role+' · <span class="hearts">'+heartStr(who)+'</span></small>';}
+  else{pc.hidden=true;$('#dlgName').textContent='';}
+  $('#dialog').hidden=false;$('#dlgOpts').innerHTML='';$('#prompt').hidden=true;
+  clearInterval(DLG.timer);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){DLG.shown=text.length;$('#dlgText').textContent=text;renderOpts();}
+  else DLG.timer=setInterval(()=>{DLG.shown+=2;$('#dlgText').textContent=text.slice(0,DLG.shown);if(DLG.shown>=text.length){clearInterval(DLG.timer);renderOpts();}},22);
+}
+function renderOpts(){const box=$('#dlgOpts');box.innerHTML='';DLG.opts.forEach((o,i)=>{const b=document.createElement('button');b.className='btn'+(i===DLG.sel?' sel':'')+(i===0?' primary':'');
+  b.textContent=(DLG.opts.length>1?(i+1)+'. ':'')+o.label;b.onclick=()=>o.fn();box.appendChild(b);});}
+function dlgActivate(){if(DLG.shown<DLG.full.length){DLG.shown=DLG.full.length;clearInterval(DLG.timer);$('#dlgText').textContent=DLG.full;renderOpts();return;}
+  const o=DLG.opts[DLG.sel];if(o)o.fn();}
+function closeDialog(){DLG.open=false;clearInterval(DLG.timer);$('#dialog').hidden=true;}
+function heartStr(id){const h=hearts(id);let s='';for(let i=0;i<5;i++)s+=i<h?'♥':'<span class="off">♥</span>';return s;}
+
+let modalOpen=false,modalH=null;
+function openModal(title,html,handler){modalOpen=true;modalH=handler;$('#mTitle').textContent=title;$('#mBody').innerHTML=html;$('#modalWrap').hidden=false;$('#prompt').hidden=true;}
+function closeModal(){modalOpen=false;$('#modalWrap').hidden=true;}
+$('#mBody').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;modalH&&modalH(b.dataset.a,b.dataset);});
+$('#mClose').onclick=closeModal;
+$('#modalWrap').addEventListener('click',e=>{if(e.target.id==='modalWrap')closeModal();});
+function toast(text,ic){const t=document.createElement('div');t.className='toast';t.innerHTML=(ic?`<img class="ico" src="${icon(ic)}" alt="">`:'')+'<span></span>';t.querySelector('span').textContent=text;
+  const box=$('#toasts');box.appendChild(t);while(box.children.length>4)box.firstChild.remove();setTimeout(()=>t.remove(),2800);}
+let fadeOpen=false;
+function fadeThen(fn,card,btn){fadeOpen=true;const f=$('#fade'),c=$('#fadeCard');f.hidden=false;c.hidden=true;requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('show')));
+  setTimeout(()=>{fn();c.innerHTML=card()+`<button class="btn primary" id="fadeGo" style="margin-top:10px">${btn}</button>`;c.hidden=false;
+    $('#fadeGo').onclick=()=>{f.classList.remove('show');setTimeout(()=>{f.hidden=true;fadeOpen=false;},600);};$('#fadeGo').focus();},650);}
+const ico=(id,sm)=>`<img class="ico${sm?' sm':''}" src="${icon(id)}" alt="">`;
+
+function openBag(){const ids=Object.keys(S.inv).filter(k=>S.inv[k]>0);let sel=null;
+  const draw=()=>{const ids2=Object.keys(S.inv).filter(k=>S.inv[k]>0);
+    let h=ids2.length?`<div class="grid">${ids2.map(id=>`<button class="slot${sel===id?' on':''}" data-a="sel" data-id="${id}">${ico(id)}<span class="n">${S.inv[id]}</span><span>${ITEMS[id].name}</span></button>`).join('')}</div>`
+      :`<p>Your bag is empty. Pinecones and branches turn up under the pines every morning, and the bushes hold holly and snowberries.</p>`;
+    if(sel&&S.inv[sel]){const it=ITEMS[sel];h+=`<div class="detail"><div class="row" style="border:0;padding:0">${ico(sel)}<div class="grow"><div class="nm">${it.name}</div><div class="sub">${it.desc}</div></div></div>
+      <div class="sub" style="color:var(--frost)">${it.price?`Bram pays ${it.price} coins`:'Not for sale'}</div><div class="acts">
+      ${DECOR[sel]||it.special?`<button class="btn primary" data-a="deco" data-id="${sel}">Place with Decorate</button>`:''}${it.food?`<button class="btn" data-a="eat" data-id="${sel}">Enjoy one</button>`:''}</div></div>`;}
+    else if(ids2.length)h+=`<div class="detail sub">Choose an item to look closer.</div>`;
+    $('#mBody').innerHTML=h;};
+  openModal('Your bag','',(a,d)=>{if(a==='sel'){sel=d.id;draw();}if(a==='deco'){closeModal();decStart(d.id);}
+    if(a==='eat'){take(d.id);toast({cocoa:'Toes thawed.',ginger:'Sorry, little pal. Delicious, though.',tart:'Sweet and sharp. Perfect.',cookie:'Crunchy. Toasty. More, please.',pie:'Hearty. Pip was right.',roast:'Hot hot hot. Worth it.',cider:'Spiced and warm all the way down.',chowder:'Creamy and peppery. Grandma Pip knew things.'}[d.id],d.id);draw();}});draw();}
+
+function needsHtml(n){return `<div class="needs">${Object.entries(n).map(([k,v])=>`<span class="need${has(k,v)?'':' short'}">${ico(k,1)}${S.inv[k]||0}/${v} ${ITEMS[k].name}</span>`).join('')}</div>`;}
+function openCraft(at){const draw=()=>{const rs=Object.keys(RECIPES).filter(r=>RECIPES[r].at===at);
+  $('#mBody').innerHTML=`<p class="sub" style="color:var(--frost);margin-top:0">${at==='bench'?'Crafting takes about 10 minutes. Ornaments, garlands and wreaths go on the great tree. Everything else is yours to place with Decorate.':'Baking takes about 10 minutes. Treats make the best gifts. Pantry goods come from Bram.'}</p>`+rs.map(r=>{const R=RECIPES[r],known=S.recipes.includes(r),ok=known&&Object.entries(R.needs).every(([k,v])=>has(k,v));
+    return `<div class="row">${ico(r)}<div class="grow"><div class="nm">${known?ITEMS[r].name:'Unknown recipe'}</div>${known?needsHtml(R.needs):`<div class="sub">${R.teach}</div>`}</div><button class="btn${ok?' primary':''}" data-a="make" data-id="${r}" ${ok?'':'disabled'}>Make</button></div>`;}).join('');};
+  openModal(at==='bench'?'Workbench':'Brick oven','',(a,d)=>{if(a!=='make')return;const R=RECIPES[d.id];for(const [k,v] of Object.entries(R.needs))take(k,v);give(d.id);addTime(10);S.stats.crafted++;sfx('open');toast('Made '+ITEMS[d.id].name,d.id);draw();});draw();}
+
+function shopList(id){return VDEF[id].shop.filter(s=>!(s.once&&S[s.once])&&!(s.need&&!S[s.need])).map(s=>({...s,price:id==='bram'&&s.id==='pantry'&&S.flags.bramDeal?8:s.price}));}
+function openShop(id){const draw=()=>{$('#mBody').innerHTML=`<p style="margin-top:0">You have ${ico('coin',1)} <b>${S.coins}</b> coins.</p>`+shopList(id).map(s=>`<div class="row">${ico(s.id)}<div class="grow"><div class="nm">${ITEMS[s.id].name}${S.inv[s.id]?` <span class="sub">(have ${S.inv[s.id]})</span>`:''}</div><div class="sub">${ITEMS[s.id].desc}${DECOR[s.id]?` · ${DECOR[s.id].vars.length} styles`:''}</div></div><button class="btn${S.coins>=s.price?' primary':''}" data-a="buy" data-id="${s.id}" ${S.coins>=s.price?'':'disabled'}>${s.price} coins</button></div>`).join('');};
+  openModal(id==='bram'?'Bramble & Co.':VDEF[id].name+"'s wares",'',(a,d)=>{const s=shopList(id).find(x=>x.id===d.id);if(!s||S.coins<s.price)return;S.coins-=s.price;sfx('coin');
+    if(s.id==='roofLights'){S.cabinLights=true;toast('Your cabin roof is strung with lights','roofLights');}else if(s.id==='rod'){S.sturdy=true;toast('Got the Sturdy Rod','rod');}
+    else if(s.id==='axe'){S.hasAxe=true;toast('Got a hand axe. Face a pine and press E to chop it','axe');}else{give(s.id);toast('Bought '+ITEMS[s.id].name,s.id);}draw();});draw();}
+function openSell(){const draw=()=>{const ids=Object.keys(S.inv).filter(k=>ITEMS[k].price>0&&!['wallpaper','flooring'].includes(k));
+  $('#mBody').innerHTML=`<p style="margin-top:0">You have ${ico('coin',1)} <b>${S.coins}</b> coins.</p>`+(ids.length?ids.map(id=>`<div class="row">${ico(id)}<div class="grow"><div class="nm">${ITEMS[id].name} <span class="sub">×${S.inv[id]}</span></div><div class="sub">${ITEMS[id].price} coins each</div></div><div class="acts"><button class="btn" data-a="s1" data-id="${id}">Sell 1</button><button class="btn" data-a="sa" data-id="${id}">Sell all</button></div></div>`).join(''):'<p>Nothing to sell yet. Bram buys forage, fish, crafts and treats.</p>');};
+  openModal('Sell to Bram','',(a,d)=>{const n=a==='sa'?S.inv[d.id]:1;addCoins(ITEMS[d.id].price*n);take(d.id,n);sfx('coin');draw();});draw();}
+function openGift(id){const ids=Object.keys(S.inv).filter(k=>S.inv[k]>0),known=S.flags['k_'+id]||[];
+  openModal('Gift for '+VDEF[id].name,(known.length?`<p class="sub" style="margin-top:0">Known to love: ${known.map(k=>ITEMS[k].name).join(', ')}</p>`:`<p class="sub" style="margin-top:0">One gift a day. Everyone has favorites. Treats are a safe bet.</p>`)+
+    (ids.length?`<div class="grid">${ids.map(k=>`<button class="slot" data-a="g" data-id="${k}">${ico(k)}<span class="n">${S.inv[k]}</span><span>${ITEMS[k].name}</span></button>`).join('')}</div>`:'<p>Your bag is empty.</p>'),(a,d)=>giftTo(id,d.id));}
+function openBoard(){const draw=()=>{$('#mBody').innerHTML=`<p class="sub" style="margin-top:0">New wishes are pinned every morning.</p>`+S.requests.map((r,i)=>`<div class="row"><img class="ico" src="${face(r.who)}" alt=""><div class="grow"><div class="nm">${VDEF[r.who].name} wishes for ${r.qty} × ${ITEMS[r.item].name}</div><div class="sub">“${r.note}” · Reward ${r.reward} coins</div></div>${r.done?'<span class="sub">Delivered</span>':`<button class="btn${has(r.item,r.qty)?' primary':''}" data-a="d" data-i="${i}" ${has(r.item,r.qty)?'':'disabled'}>Deliver ${S.inv[r.item]||0}/${r.qty}</button>`}</div>`).join('');};
+  openModal('Wish board','',(a,d)=>{const r=S.requests[+d.i];if(!r||r.done||!has(r.item,r.qty))return;take(r.item,r.qty);r.done=true;addCoins(r.reward);addPts(r.who,6);S.stats.wishes++;sfx('coin');toast('+'+r.reward+' coins from '+VDEF[r.who].name,'coin');draw();});draw();}
+function openTree(){const draw=()=>{const deco=['ornament','bauble','garland','wreath','antique'];
+  $('#mBody').innerHTML=`<p style="margin-top:0">${S.festivalDone?'The great tree glows every night now.':`Hang decorations before Lantern Night on December 24. Come back after 5 PM that evening to light it.`}</p>
+   <div class="bar"><i style="width:${Math.min(100,S.treePts/TREE_GOAL*100)}%"></i></div><p class="sub">${Math.min(S.treePts,TREE_GOAL)} of ${TREE_GOAL} lights</p>`+
+   deco.map(d=>`<div class="row">${ico(d)}<div class="grow"><div class="nm">${ITEMS[d].name} <span class="sub">×${S.inv[d]||0}</span></div><div class="sub">Adds ${ITEMS[d].tree} light${ITEMS[d].tree>1?'s':''}</div></div><button class="btn${has(d)?' primary':''}" data-a="h" data-id="${d}" ${has(d)?'':'disabled'}>Hang one</button></div>`).join('');};
+  openModal('The great tree','',(a,d)=>{take(d.id);S.treePts+=ITEMS[d.id].tree;sfx('pick');draw();});draw();}
+function openMail(){if(S.mailRead){say(null,'The mailbox is empty. Juniper delivers each morning.');return;}
+  const L=letterFor(S.day),g=Object.entries(L.gifts||{});
+  openModal('Your mailbox',`<div class="letter"><span class="day">${S.day<=24?S.day:'❄'}</span>${esc(L.body)}<div class="from">— ${esc(L.from)}</div><div style="clear:both"></div></div>
+    <div class="acts" style="margin-top:12px">${g.map(([k,n])=>`<span class="need">${ico(k)} ${n} × ${ITEMS[k].name}</span>`).join('')}${L.coins?`<span class="need">${ico('coin')} ${L.coins} coins</span>`:''}</div>
+    <div style="margin-top:12px"><button class="btn primary" data-a="take">${g.length||L.coins?'Take the gift':'Put the letter away'}</button></div>`,()=>{
+    S.mailRead=true;if(S.letters.length)S.letters.shift();for(const [k,n] of g)give(k,n);if(L.coins)addCoins(L.coins);sfx('open');closeModal();});}
+function openJournal(){const fish=['minnow','perch','trout','char','pike','carp'];
+  openModal('Journal',`<h3>Tasks</h3>${TASKS.map(([id,t,rw])=>`<div class="task${S.tasks[id]?' done':''}"><span class="box">${S.tasks[id]?'✓':''}</span><span class="grow">${t}</span><span class="sub">+${rw}</span></div>`).join('')}
+   <h3>Lantern Night</h3><p style="margin:0 0 6px">${countText()}</p><div class="bar"><i style="width:${Math.min(100,S.treePts/TREE_GOAL*100)}%"></i></div><p class="sub">Great tree: ${Math.min(S.treePts,TREE_GOAL)} of ${TREE_GOAL} lights${S.wish?` · Your wish: “${esc(S.wish)}”`:''}</p>
+   <h3>Neighbors</h3>${[...S.residents,...(S.visitor&&!S.residents.includes(S.visitor)?[S.visitor]:[])].map(id=>`<div class="row"><img class="ico" src="${face(id)}" alt=""><div class="grow"><div class="nm">${VDEF[id].name} <span class="sub">${VDEF[id].role}${S.residents.includes(id)?'':' · visiting today'}</span></div><div class="sub">${S.friends[id].met?(S.friends[id].talked?'Chatted today':'Hasn\'t seen you today'):'Not met yet'}${S.friends[id].gifted?' · Gift given':''}${(S.flags['k_'+id]||[]).length?' · Loves '+S.flags['k_'+id].map(k=>ITEMS[k].name).join(', '):''}</div></div><span class="hearts">${heartStr(id)}</span></div>`).join('')}
+   <p class="sub">${S.plots.filter(p=>!p).length} empty plot${S.plots.filter(p=>!p).length===1?'':'s'} for new neighbors${S.moving?` · ${VDEF[S.moving.id].name} moves in tomorrow`:''}.</p>
+   <h3>Wish board today</h3>${S.requests.map(r=>`<div class="sub">${r.done?'Done':'Open'} · ${VDEF[r.who].name}: ${r.qty} × ${ITEMS[r.item].name}</div>`).join('')}
+   <h3>Fish caught</h3><div class="needs">${fish.map(f=>`<span class="need">${ico(f,1)}${S.fishLog[f]?ITEMS[f].name+' ×'+S.fishLog[f]:'???'}</span>`).join('')}</div>
+   <h3>Recipes known</h3><p class="sub">${S.recipes.map(r=>ITEMS[r].name).join(', ')}</p>`);}
+function openHelp(){openModal('How to play',`<p style="margin-top:0">It's December in Lantern Hollow. On the 24th the village lights its great tree. Spend the days in between however you like.</p>
+  <h3>Controls</h3><p>Walk with WASD or the arrow keys, hold Shift to run. Press E, Space or Enter to interact with whatever you're facing. B opens your bag, J your journal, F toggles Decorate, Esc closes windows. On a phone, drag on the left side to walk and tap A.</p>
+  <h3>Decorate</h3><p>Press Decorate in the village or inside your cabin. Pick something from your bag to place it, or use Move, Restyle and Put away on things already placed. With a mouse, click a tile. With keys, the tile in front of you is the target and R cycles styles. Lamps, benches, your mailbox, workbench and oven can all be moved.</p>
+  <h3>Neighbors and visitors</h3><p>Neighbors keep their own schedules. Knock to visit them at home in the evening. Most days a traveling visitor stops in the square with a shop and a recipe. Befriend one and you can invite them to move into an empty plot.</p>
+  <h3>Mystery islands</h3><p>Pip runs sled trips across the frozen sea. Each ticket takes you to a randomly made island, piled with pinecones, chestnuts, berries, ice or driftwood, sometimes with rare finds. Ride the sled back when you're done. Bram sells tickets.</p>
+  <h3>Days</h3><p>Each day runs from 7 AM to 2 AM. Sleep in your bed whenever you're ready. Bushes regrow after two days, snowdrifts every morning. With an axe you can chop pines for branches, and saplings from Bruno replant them.</p>
+  <h3>Your progress</h3><p>The game saves in this browser every few seconds and each morning.</p>`);}
+
+// ---------- DECORATE MODE
+const DEC={on:false,tool:'move',sel:null,carry:null,v:0,mouse:null,mouseT:0,special:null};
+const decAllowed=()=>S.scene==='village'||S.scene==='cabin';
+const usableHere=id=>{const d=DECOR[id];if(!d)return false;return S.scene==='village'?(d.where==='out'||d.where==='both'):d.where!=='out';};
+function decStart(sel){if(!decAllowed())return toast("You can decorate the village and your own cabin.");
+  DEC.on=true;DEC.carry=null;DEC.special=null;DEC.sel=null;DEC.tool='move';
+  if(sel&&ITEMS[sel].special){if(S.scene!=='cabin')toast('Wallpaper and flooring go inside your cabin.');else DEC.special=ITEMS[sel].special;}
+  else if(sel&&usableHere(sel)){DEC.sel=sel;DEC.tool='place';DEC.v=0;}
+  else if(sel)toast(DECOR[sel].where==='out'?'That one goes outside.':'That one goes indoors.');
+  $('#tray').hidden=false;document.body.classList.add('decor');$('#prompt').hidden=true;renderTray();}
+function decEnd(){if(DEC.carry){const c=DEC.carry;c.x=c.orig[0];c.y=c.orig[1];S.decor[S.scene].push(c);rebuildOcc(S.scene);DEC.carry=null;}
+  DEC.on=false;$('#tray').hidden=true;document.body.classList.remove('decor');save();}
+function decCursor(){if(DEC.mouse&&performance.now()-DEC.mouseT<2500){return [Math.floor(DEC.mouse[0]/16),Math.floor(DEC.mouse[1]/16)];}
+  const [fx,fy]=FDIR[S.face];return [Math.floor((S.px+fx*14)/16),Math.floor((S.py-5+fy*14)/16)];}
+function decAct([tx,ty]){const sc=S.scene,L=S.decor[sc];
+  if(DEC.carry){const c=DEC.carry;if(canPlace(sc,c.id,tx,ty,c)){c.x=tx;c.y=ty;delete c.orig;L.push(c);DEC.carry=null;rebuildOcc(sc);S.stats.placed++;sfx('place');burst(tx*16+8,ty*16+12,'#ffffff',6);}else{sfx('bad');}return renderTray();}
+  if(DEC.tool==='place'&&DEC.sel){if(!has(DEC.sel)){DEC.sel=null;DEC.tool='move';return renderTray();}
+    if(canPlace(sc,DEC.sel,tx,ty)){take(DEC.sel);L.push({id:DEC.sel,x:tx,y:ty,v:DEC.v});rebuildOcc(sc);S.stats.placed++;sfx('place');burst(tx*16+8,ty*16+12,'#ffffff',6);
+      if(!has(DEC.sel)){DEC.sel=null;DEC.tool='move';}}else sfx('bad');return renderTray();}
+  const o=decorAt(sc,tx,ty);if(!o)return;
+  if(DEC.tool==='move'){L.splice(L.indexOf(o),1);o.orig=[o.x,o.y];DEC.carry=o;rebuildOcc(sc);sfx('lift');}
+  else if(DEC.tool==='style'){o.v=(o.v+1)%DECOR[o.id].vars.length;S.stats.restyled++;sfx('style');toast(ITEMS[o.id].name+': '+varName(o.id,o.v),o.id);}
+  else if(DEC.tool==='store'){if(DECOR[o.id].store===0){sfx('bad');toast('That one stays, but you can move it.');}else{L.splice(L.indexOf(o),1);give(o.id);rebuildOcc(sc);sfx('lift');toast('Put away: '+ITEMS[o.id].name,o.id);}}
+  renderTray();}
+function decCycle(){if(DEC.carry){DEC.carry.v=(DEC.carry.v+1)%DECOR[DEC.carry.id].vars.length;S.stats.restyled++;}else if(DEC.sel)DEC.v=(DEC.v+1)%DECOR[DEC.sel].vars.length;
+  else{const [tx,ty]=decCursor(),o=decorAt(S.scene,tx,ty);if(o){o.v=(o.v+1)%DECOR[o.id].vars.length;S.stats.restyled++;toast(ITEMS[o.id].name+': '+varName(o.id,o.v),o.id);}}sfx('style');renderTray();}
+function renderTray(){
+  const ids=Object.keys(S.inv).filter(k=>S.inv[k]>0&&(usableHere(k)||(S.scene==='cabin'&&ITEMS[k].special)));
+  const tool=(t,l)=>`<button class="btn${DEC.tool===t&&!DEC.sel&&!DEC.carry?' sel':''}" data-t="${t}">${l}</button>`;
+  let h=`<div class="tray-top"><div class="acts">${tool('move','Move')}${tool('style','Restyle')}${tool('store','Put away')}</div><button class="btn primary" data-done="1">Done</button></div>`;
+  h+=`<div class="tray-items">${ids.length?ids.map(id=>`<button class="slot${DEC.sel===id||DEC.special===ITEMS[id].special&&ITEMS[id].special?' on':''}" data-item="${id}"><img class="ico" src="${icon(id)}" alt=""><span class="n">${S.inv[id]}</span><span>${ITEMS[id].name}</span></button>`).join(''):`<span class="sub">Nothing to place here. Craft or buy decorations, then come back.</span>`}</div>`;
+  const vid=DEC.carry?DEC.carry.id:DEC.sel,cur=DEC.carry?DEC.carry.v:DEC.v;
+  if(DEC.special){const L=DEC.special==='wall'?WALLPAPERS:FLOORS;h+=`<div class="tray-vars">${L.map((w,i)=>`<button class="btn" data-sp="${i}">${w[w.length-1]}</button>`).join('')}</div>`;}
+  else if(vid&&DECOR[vid].vars.length>1)h+=`<div class="tray-vars">${DECOR[vid].vars.map((k,i)=>`<button class="swatch${i===cur?' on':''}" data-v="${i}" title="${varName(vid,i)}"><i style="background:${VARS[k].A}"></i>${varName(vid,i)}</button>`).join('')}</div>`;
+  const hint=DEC.carry?`Carrying ${ITEMS[DEC.carry.id].name}. Choose a spot to set it down.`:DEC.sel?`Placing ${ITEMS[DEC.sel].name}. Pick a style, then choose a spot.`:DEC.special?'Choose a pattern to apply to your cabin.':
+    {move:'Choose something you placed to pick it up.',style:'Choose something to cycle its style.',store:'Choose something to return it to your bag.'}[DEC.tool];
+  h+=`<div class="sub tray-hint">${hint} ${touchMode?'Tap a tile or press A.':'Click a tile or press E. R changes style.'}</div>`;
+  $('#tray').innerHTML=h;}
+$('#tray').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.done)return decEnd();
+  if(d.t){if(DEC.carry)return;DEC.tool=d.t;DEC.sel=null;DEC.special=null;}
+  if(d.item){const id=d.item;if(ITEMS[id].special){DEC.special=ITEMS[id].special;DEC.sel=null;}else if(!DEC.carry){DEC.sel=id;DEC.tool='place';DEC.v=0;DEC.special=null;}}
+  if(d.v!==undefined){if(DEC.carry)DEC.carry.v=+d.v;else DEC.v=+d.v;sfx('style');}
+  if(d.sp!==undefined){const i=+d.sp,r=S.rooms.cabin;if(DEC.special==='wall'){if(!has('wallpaper'))return;r.wall=WALLPAPERS[i].slice(0,2);take('wallpaper');}else{if(!has('flooring'))return;r.floor=FLOORS[i][0];take('flooring');}
+    S.stats.restyled++;sfx('place');toast('Applied: '+(DEC.special==='wall'?WALLPAPERS[i][2]:FLOORS[i][1]),DEC.special==='wall'?'wallpaper':'flooring');DEC.special=null;}
+  renderTray();});
+
+// ---------- RENDER
+const cv=$('#c'),ctx=cv.getContext('2d'),lc=mk(1,1),lx=lc.getContext('2d');
+let scale=3,vw=0,vh=0,camX=0,camY=0,flakes=[],titleOpen=true,started=false,snapCam=true;
+function resize(){const w=innerWidth,h=innerHeight;scale=Math.max(2,Math.floor(Math.min(w/(16*20),h/(16*13))));
+  vw=Math.ceil(w/scale);vh=Math.ceil(h/scale);cv.width=vw;cv.height=vh;cv.style.width=vw*scale+'px';cv.style.height=vh*scale+'px';
+  lc.width=vw;lc.height=vh;ctx.imageSmoothingEnabled=false;makeFlakes();snapCam=true;}
+function makeFlakes(){const wth=S?S.weather:'snow',n=Math.round(vw*vh/(wth==='heavy'?300:wth==='clear'?6000:750));
+  flakes=Array.from({length:n},()=>({x:Math.random()*vw,y:Math.random()*vh,s:8+Math.random()*16,w:4+Math.random()*8,p:Math.random()*6,z:Math.random()<.2?2:1}));}
+let lastWeather=null;
+const viewTime=()=>titleOpen?1110:S.time;
+function darkness(t){if(t>=1440||t<360)return 1;if(t<510)return 1-(t-360)/150;if(t<960)return 0;if(t<1080)return(t-960)/120;return 1;}
+const D=(img,x,y)=>ctx.drawImage(img,Math.round(x-camX),Math.round(y-camY));
+function shadow(x,y,w){ctx.fillStyle='rgba(70,95,130,.25)';ctx.beginPath();ctx.ellipse(Math.round(x-camX),Math.round(y-camY),w,2.5,0,0,7);ctx.fill();}
+function decorFrame(o,night){if(o.id==='lamp')return night?1:0;if(o.id==='mailbox')return S.mailRead?0:1;return DECOR_ANIM[o.id]?Math.floor(animT*4)%2:0;}
+function drawDecor(o,night,alpha){const d=DECOR[o.id],spr=decorSprite(o.id,o.v,decorFrame(o,night)),[fw,fh]=fp(o);
+  const x=o.x*16+(fw*16-spr.width)/2,y=d.where==='wall'?o.y*16+8-spr.height/2:(o.y+fh)*16-spr.height+1;
+  if(alpha!==undefined)ctx.globalAlpha=alpha;if(d.where!=='wall'&&d.layer!=='floor'&&alpha===undefined)shadow(x+spr.width/2,(o.y+fh)*16-1,Math.min(10,spr.width/2));D(spr,x,y);ctx.globalAlpha=1;}
+function decorLights(o,LIT,night){const d=DECOR[o.id];if(!d.light)return;if(!night&&!['firepit','hearth','candles'].includes(o.id))return;
+  if(o.id==='lamp'&&!night)return;const [cx,cy]=decorCenter(o);LIT.push([cx,cy-6,d.light[0],1,d.light[1]]);}
+function render(dt){
+  const t=viewTime(),sc=titleOpen?'village':S.scene,dk0=darkness(t),night=dk0>.15,LIT=[];
+  if(S&&S.weather!==lastWeather){lastWeather=S.weather;makeFlakes();}
+  const roomPxW=RW*16,roomPxH=RH*16,mw=sc==='village'?MAPW:sc==='island'?ISL.w*16:roomPxW,mh=sc==='village'?MAPH:sc==='island'?ISL.h*16:roomPxH;
+  let tx,ty;if(titleOpen){tx=400+Math.sin(animT*.12)*90;ty=250;}else{tx=S.px;ty=S.py-8;}
+  const gx=vw>=mw?(mw-vw)/2:clamp(tx-vw/2,0,mw-vw),gy=vh>=mh?(mh-vh)/2:clamp(ty-vh/2,0,mh-vh);
+  if(snapCam){camX=gx;camY=gy;snapCam=false;}else{const k=Math.min(1,dt*9);camX+=(gx-camX)*k;camY+=(gy-camY)*k;}
+  const cX=camX,cY=camY;camX=Math.round(cX);camY=Math.round(cY);
+  const L=[],vis=(x,y,m=48)=>x>camX-m&&x<camX+vw+m&&y>camY-m&&y<camY+vh+90,push=(key,x,y,fn)=>{if(vis(x,y))L.push({key,fn});};
+  let dk=dk0;
+  if(sc==='village'){
+    ctx.fillStyle='#173027';ctx.fillRect(0,0,vw,vh);ctx.drawImage(ground,-camX,-camY);
+    ctx.fillStyle='rgba(120,145,180,1)';for(const p of prints){ctx.globalAlpha=p.a*.45;ctx.fillRect(Math.round(p.x-camX),Math.round(p.y-camY),2,1);}ctx.globalAlpha=1;
+    for(const tr of TREES){if(S.chopped.includes(tr.i))continue;push(tr.y*16+16,tr.x*16,tr.y*16,()=>{shadow(tr.x*16+10,tr.y*16+15,10);D(TREE_SPR[tr.v],tr.x*16-5,tr.y*16-22);});}
+    for(const tr of BORDER_TREES)push(tr.y*16+16,tr.x*16,tr.y*16,()=>D(TREE_SPR[tr.v],tr.x*16-5+(tr.y%2)*4,tr.y*16-22));
+    for(const r of ROCKS)push(r.y*16+15,r.x*16,r.y*16,()=>D(ART.rock,r.x*16-1,r.y*16+2));
+    BUSHES.forEach((b,i)=>push(b.y*16+15,b.x*16,b.y*16,()=>D(ART.bush[b.type][S.bushes[i].ready?1:0],b.x*16-1,b.y*16+2)));
+    DRIFTS.forEach((d,i)=>{if(S.drifts[i])push(d.y*16+10,d.x*16,d.y*16,()=>D(ART.drift,d.x*16-1,d.y*16+6));});
+    push(BOARD[1]*16+15,BOARD[0]*16,BOARD[1]*16,()=>{D(ART.board,BOARD[0]*16-2,BOARD[1]*16-7);
+      S.requests.forEach((r,i)=>{if(r.done)return;ctx.fillStyle=['#f4f7fb','#ffe9a8','#ffc9d6'][i];ctx.fillRect(Math.round(BOARD[0]*16+1+i*5-camX),Math.round(BOARD[1]*16-3+(i%2)*3-camY),4,5);});});
+    for(const h of allHouses()){push((h.y+4)*16,h.ox+44,h.oy+60,()=>drawHouse(h,night));
+      if(night)for(const X of [12,58])LIT.push([h.ox+X+9,h.oy+67,22,.8,'255,190,110']);
+      if(h.id==='cabin'&&S.cabinLights&&night)for(let k=0;k<14;k++)LIT.push([h.ox+3+k*6,h.oy+52,9,.5,'255,220,180']);}
+    PLOTS.forEach((p,i)=>{if(!S.plots[i])push((p.y+3)*16,(p.x+2)*16,(p.y+2)*16,()=>D(ART.plot,(p.x+2)*16,(p.y+2)*16));});
+    push((IGLOO.y+2)*16,IGLOO.x*16+24,IGLOO.y*16,()=>D(ART.igloo,IGLOO.x*16-1,IGLOO.y*16+1));
+    if(night)LIT.push([IGLOO.x*16+24,IGLOO.y*16+26,16,.8,'150,190,255']);
+    push(TREE_C.y,TREE_C.x,TREE_C.y-40,()=>drawGreatTree(night));
+    const glow=S.festivalDone?1:FEST.active?FEST.glow:Math.min(1,S.treePts/TREE_GOAL)*.5;
+    if(night&&(glow>0||S.treePts>0))LIT.push([TREE_C.x,TREE_C.y-40,40+80*glow,.6+.4*glow,'255,210,140']);
+    for(const it of S.items)push(it.y*16+12,it.x*16,it.y*16,()=>{shadow(it.x*16+8,it.y*16+13,4);D(ICONS[it.id],it.x*16+3,it.y*16+3);
+      if(Math.floor(animT*2+it.x*3)%7===0){ctx.fillStyle='#fff';ctx.fillRect(Math.round(it.x*16+11-camX),Math.round(it.y*16+3-camY),1,1);}});
+  }else if(sc==='island'){drawIsland(push,LIT,night);
+  }else{
+    dk=dk0*.35;const r=S.rooms[sc]||ROOMS[sc];ctx.fillStyle='#120c0a';ctx.fillRect(0,0,vw,vh);ctx.drawImage(roomCanvas(r.wall[0],r.wall[1],r.floor),-camX,-camY);
+    const sky=dk0>.5?'#1b2a4a':dk0>.1?'#c98a7a':'#9fc0d6';
+    for(const w of [2,8]){const x=Math.round(w*16+3-camX),y=Math.round(8-camY);ctx.fillStyle=sky;ctx.fillRect(x,y,10,16);ctx.fillStyle='#f4f8fc';ctx.fillRect(x,y+12,10,4);ctx.fillStyle='#f1ead8';ctx.fillRect(x+4,y,2,16);ctx.fillRect(x,y+7,10,2);
+      if(!night)LIT.push([w*16+8,20,28,.5,'255,255,240']);}
+  }
+  for(const o of S.decor[sc]||[]){const d=DECOR[o.id],[fw,fh]=fp(o);decorLights(o,LIT,night||sc!=='village');
+    const key=d.where==='wall'?-1:d.layer==='floor'?-2:(o.y+fh)*16;push(key,o.x*16+fw*8,(o.y+fh)*16-8,()=>drawDecor(o,night));}
+  if(!titleOpen)for(const id of ALL_IDS){const v=VR[id];if(v.scene!==sc)continue;push(v.y,v.x,v.y,()=>{shadow(v.x,v.y,6);
+    const b=v.moving&&Math.floor(animT*6)%2?1:0;D(VSPR[id],v.x-9,v.y-17-b);
+    if(!S.friends[id].talked){const bx=Math.round(v.x-3-camX),by=Math.round(v.y-27-camY+Math.sin(animT*3));ctx.fillStyle='#1c2433';ctx.fillRect(bx-1,by-1,9,7);ctx.fillStyle=VDEF[id].visitor&&!S.residents.includes(id)?'#ffe9a8':'#fff';ctx.fillRect(bx,by,7,5);ctx.fillRect(bx+1,by+5,2,1);ctx.fillStyle='#cf3d4f';ctx.fillRect(bx+1,by+2,1,1);ctx.fillRect(bx+3,by+2,1,1);ctx.fillRect(bx+5,by+2,1,1);}});}
+  if(!titleOpen){push(S.py,S.px,S.py,()=>{shadow(S.px,S.py,6);const fr=walking&&Math.floor(animT*8)%2?1:0;D(SPR[S.face][fr],S.px-9,S.py-17-(fr?1:0));});
+    if(night&&OUT(sc))LIT.push([S.px,S.py-8,34,.7,'255,210,160']);}
+  L.sort((a,b)=>a.key-b.key);for(const o of L)o.fn();
+  for(const p of puffs){ctx.globalAlpha=Math.max(0,1-p.life/.7);ctx.fillStyle=p.col;ctx.fillRect(Math.round(p.x-camX),Math.round(p.y-camY),2,2);}ctx.globalAlpha=1;
+  if(sc==='village'){for(const s of smoke){const a=Math.max(0,.55*(1-s.life/s.max)),r=Math.round(2+s.life*1.6);ctx.fillStyle=`rgba(226,233,242,${a})`;ctx.fillRect(Math.round(s.x-camX-r/2),Math.round(s.y-camY-r/2),r,r);}
+    for(const l of skyL){const x=Math.round(l.x-camX),y=Math.round(l.y-camY);ctx.fillStyle='#ff8a4a';ctx.fillRect(x-2,y-3,4,5);ctx.fillStyle='#ffd27a';ctx.fillRect(x-1,y-2,2,3);LIT.push([l.x,l.y,14,1,'255,160,90']);}}
+  if(DEC.on&&!titleOpen)drawGhost(night);
+  if(dk>.01){lx.globalCompositeOperation='source-over';lx.clearRect(0,0,vw,vh);lx.fillStyle=OUT(sc)?`rgba(12,20,50,${.74*dk})`:`rgba(30,14,20,${.9*dk})`;lx.fillRect(0,0,vw,vh);
+    lx.globalCompositeOperation='destination-out';
+    for(const [x,y,r,i] of LIT){const X=x-camX,Y=y-camY;if(X<-r||Y<-r||X>vw+r||Y>vh+r)continue;const g=lx.createRadialGradient(X,Y,0,X,Y,r);g.addColorStop(0,`rgba(0,0,0,${i})`);g.addColorStop(1,'rgba(0,0,0,0)');lx.fillStyle=g;lx.fillRect(X-r,Y-r,r*2,r*2);}
+    ctx.drawImage(lc,0,0);}
+  if(night||!OUT(sc)){ctx.globalCompositeOperation='lighter';const kk=OUT(sc)?dk:.5;
+    for(const [x,y,r,i,c] of LIT){const X=x-camX,Y=y-camY;if(X<-r||Y<-r||X>vw+r||Y>vh+r)continue;const g=ctx.createRadialGradient(X,Y,0,X,Y,r*.8);g.addColorStop(0,`rgba(${c},${.38*i*kk})`);g.addColorStop(1,`rgba(${c},0)`);ctx.fillStyle=g;ctx.fillRect(X-r,Y-r,r*2,r*2);}
+    ctx.globalCompositeOperation='source-over';}
+  if(OUT(sc)){if(dk>.05&&dk<.85){ctx.fillStyle=t>720?`rgba(255,130,90,${.1*Math.sin(dk*Math.PI)})`:`rgba(255,170,200,${.08*Math.sin(dk*Math.PI)})`;ctx.fillRect(0,0,vw,vh);}
+    if(S.weather==='heavy'){ctx.fillStyle='rgba(230,238,248,.07)';ctx.fillRect(0,0,vw,vh);}
+    ctx.fillStyle=night?'rgba(235,242,255,.75)':'#ffffff';for(const f of flakes)ctx.fillRect(Math.round(f.x),Math.round(f.y),f.z,f.z);}
+  const pr=$('#prompt');
+  if(target&&!titleOpen&&!DLG.open&&!modalOpen&&!FI.active&&!fadeOpen&&!FEST.active&&!DEC.on&&!transOpen){
+    const ax=Math.round(target.x-camX),ay=Math.round(target.y-camY-18+Math.sin(animT*6)*1.5);ctx.fillStyle='#1c2433';ctx.fillRect(ax-3,ay-1,7,4);ctx.fillRect(ax-2,ay+3,5,1);ctx.fillRect(ax-1,ay+4,3,1);ctx.fillStyle='#f2c35b';ctx.fillRect(ax-2,ay,5,3);ctx.fillRect(ax-1,ay+3,3,1);ctx.fillRect(ax,ay+4,1,1);
+    pr.hidden=false;pr.innerHTML=`<kbd>${touchMode?'A':'E'}</kbd>`;pr.appendChild(document.createTextNode(target.label));
+    pr.style.left=(target.x-camX)*scale+'px';pr.style.top=(target.y-camY-20)*scale+'px';}else pr.hidden=true;
+  camX=cX;camY=cY;
+}
+function drawGhost(night){const [tx,ty]=decCursor(),id=DEC.carry?DEC.carry.id:DEC.sel;const rect=(x,y,w,h,c)=>{ctx.strokeStyle=c;ctx.lineWidth=1;ctx.strokeRect(Math.round(x*16-camX)+.5,Math.round(y*16-camY)+.5,w*16-1,h*16-1);};
+  if(id){const ok=canPlace(S.scene,id,tx,ty,DEC.carry),d=DECOR[id];rect(tx,ty,d.w||1,d.h||1,ok?'#6ad38a':'#ff5a6a');
+    drawDecor({id,x:tx,y:ty,v:DEC.carry?DEC.carry.v:DEC.v},night,ok?.75:.35);}
+  else{const o=decorAt(S.scene,tx,ty);if(o){const [w,h]=fp(o);rect(o.x,o.y,w,h,DEC.tool==='store'&&DECOR[o.id].store===0?'#ff5a6a':'#f2c35b');}else rect(tx,ty,1,1,'rgba(255,255,255,.5)');}}
+function drawHouse(h,night){D(h.spr,h.ox,h.oy);
+  for(const X of [12,58]){const x=Math.round(h.ox+X+1-camX),y=Math.round(h.oy+59-camY);
+    ctx.fillStyle=night?'#ffd77a':'#5b7a9a';ctx.fillRect(x+1,y+1,14,14);ctx.fillStyle=night?'#ffeeb8':'#88a7c4';ctx.fillRect(x+2,y+2,4,3);
+    ctx.fillStyle='#f1ead8';ctx.fillRect(x+7,y+1,2,14);ctx.fillRect(x+1,y+7,14,2);}
+  if(h.id==='cabin'&&S.cabinLights){for(let k=0;k<14;k++){const on=night?(Math.floor(animT*2+k)%3!==0):1;ctx.fillStyle=on?STALL_LIGHTS[k%5]:'#555';ctx.fillRect(Math.round(h.ox+3+k*6-camX),Math.round(h.oy+51-camY),2,2);}}}
+function drawGreatTree(night){const ox=TREE_C.x-32,oy=TREE_C.y-84;D(BIG_TREE,ox-1,oy+2);
+  const n=Math.min(TREE_GOAL,S.treePts);
+  for(let i=0;i<n;i++){const [x,y,c]=TREE_ORN[i];ctx.fillStyle=c;ctx.fillRect(Math.round(ox+x-camX),Math.round(oy+y-camY),2,2);ctx.fillStyle='#fff';ctx.fillRect(Math.round(ox+x-camX),Math.round(oy+y-camY),1,1);}
+  const bulbs=S.festivalDone?40:FEST.active?Math.round(40*FEST.glow):Math.round(40*n/TREE_GOAL);
+  for(let i=0;i<bulbs;i++){const [x,y,c]=TREE_BULBS[i],tw=night&&Math.sin(animT*3+i*1.7)>-.3;ctx.fillStyle=tw?c:'#7a6a50';ctx.fillRect(Math.round(ox+x-camX),Math.round(oy+y-camY),1,1);}
+  if(S.festivalDone||FEST.active||n>=TREE_GOAL){const sx=Math.round(ox+32-camX),sy=Math.round(oy-1-camY);ctx.fillStyle='#f2c35b';ctx.fillRect(sx-1,sy-3,3,7);ctx.fillRect(sx-3,sy-1,7,3);ctx.fillStyle='#fff6c9';ctx.fillRect(sx,sy,1,1);}}
+
+// ---------- HUD
+let hudCache='';
+function hud(){const dt=new Date(2026,11,S.day),date=dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),tm=timeStr(S.time),nt=nextTask();
+  const k=date+tm+S.coins+countText()+nt;if(k===hudCache)return;hudCache=k;
+  $('#hudDate').textContent=date;$('#hudTime').textContent=tm;$('#hudCount').textContent=countText();$('#hudCoins').textContent=S.coins;
+  $('#hudTask').hidden=!nt;$('#hudTask').textContent=nt?'Next: '+nt:'';}
+
+// ---------- INPUT
+let touchMode=false;
+const busy=()=>!started||titleOpen||DLG.open||FI.active||FEST.active||fadeOpen||transOpen;
+addEventListener('keydown',e=>{const k=e.key.toLowerCase(),tg=e.target.tagName;
+  if(tg==='INPUT'){if(k==='enter'&&e.target.id==='wishIn')$('#wishGo').click();return;}
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+  if(k==='escape'){if(modalOpen)closeModal();else if(DLG.open&&DLG.shown>=DLG.full.length){const o=DLG.opts[DLG.opts.length-1];o&&o.fn();}else if(DEC.on)decEnd();return;}
+  if(DLG.open&&DLG.shown>=DLG.full.length){if(['arrowleft','arrowup'].includes(k)){DLG.sel=(DLG.sel+DLG.opts.length-1)%DLG.opts.length;renderOpts();return;}
+    if(['arrowright','arrowdown','tab'].includes(k)){e.preventDefault();DLG.sel=(DLG.sel+1)%DLG.opts.length;renderOpts();return;}
+    if(/^[1-4]$/.test(k)&&DLG.opts[+k-1]){DLG.opts[+k-1].fn();return;}}
+  if(tg==='BUTTON'&&(k===' '||k==='enter'))return;
+  if(e.repeat&&['e',' ','enter','z','r','f'].includes(k))return;
+  keys[k]=true;
+  if(['e',' ','enter','z'].includes(k))act();
+  if(busy())return;
+  if(k==='r'&&DEC.on)decCycle();
+  if(k==='f'&&!modalOpen){DEC.on?decEnd():decStart();}
+  if(k==='b'||k==='i'){modalOpen?closeModal():openBag();}
+  if(k==='j'){modalOpen?closeModal():openJournal();}});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+const worldAt=(cx,cy)=>[cx/scale+camX,cy/scale+camY];
+cv.addEventListener('mousemove',e=>{if(!DEC.on)return;DEC.mouse=worldAt(e.clientX,e.clientY);DEC.mouseT=performance.now();});
+cv.addEventListener('mousedown',e=>{if(!DEC.on||busy()||modalOpen)return;DEC.mouse=worldAt(e.clientX,e.clientY);DEC.mouseT=performance.now();decAct(decCursor());});
+let joyId=null,jx0=0,jy0=0,tapStart=null;
+cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;setTouch();
+  if(e.clientX<innerWidth*.55){joyId=e.pointerId;jx0=e.clientX;jy0=e.clientY;JOY.on=true;JOY.x=JOY.y=0;const s=$('#stick');s.hidden=false;s.style.left=jx0+'px';s.style.top=jy0+'px';$('#knob').style.transform='';}
+  else if(DEC.on)tapStart={x:e.clientX,y:e.clientY,t:performance.now()};else act();});
+addEventListener('pointermove',e=>{if(e.pointerId!==joyId)return;let dx=e.clientX-jx0,dy=e.clientY-jy0;const d=Math.hypot(dx,dy),mx=44;if(d>mx){dx=dx/d*mx;dy=dy/d*mx;}
+  JOY.x=Math.abs(dx)<6?0:dx/mx;JOY.y=Math.abs(dy)<6?0:dy/mx;$('#knob').style.transform=`translate(${dx}px,${dy}px)`;});
+const joyEnd=e=>{if(tapStart&&e.pointerType!=='mouse'&&Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)<12&&performance.now()-tapStart.t<400&&DEC.on){DEC.mouse=worldAt(e.clientX,e.clientY);DEC.mouseT=performance.now();decAct(decCursor());}
+  tapStart=null;if(e.pointerId!==joyId)return;joyId=null;JOY.on=false;JOY.x=JOY.y=0;$('#stick').hidden=true;};
+addEventListener('pointerup',joyEnd);addEventListener('pointercancel',joyEnd);
+function setTouch(){if(touchMode)return;touchMode=true;if(started)$('#touch').hidden=false;}
+if(matchMedia('(pointer: coarse)').matches)touchMode=true;
+$('#bA').addEventListener('pointerdown',e=>{e.preventDefault();act();});
+$('#fish').addEventListener('pointerdown',e=>{e.preventDefault();act();});
+const guard=fn=>()=>{if(!busy())fn();};
+$('#bBag').onclick=guard(()=>{DEC.on&&decEnd();openBag();});$('#bJournal').onclick=guard(openJournal);
+$('#bDecor').onclick=guard(()=>{closeModal();DEC.on?decEnd():decStart();});
+$('#bHelp').onclick=guard(openHelp);$('#bSound').onclick=()=>{auInit();setMusic(!AU.on);};
+
+// ---------- BOOT
+function beginPlay(){titleOpen=false;started=true;snapCam=true;$('#title').hidden=true;$('#hud').hidden=false;$('#topbtns').hidden=false;if(touchMode)$('#touch').hidden=false;
+  auInit();setMusic(AU.on);resetVillagers();hud();
+  if(S.day===1&&!S.mailRead&&S.time<DAY_START+5)setTimeout(()=>say(null,"Your first morning in Lantern Hollow. The mailbox is just outside your cabin door, and the Journal lists a few things to try.",[{label:"Let's go",fn:closeDialog}]),400);}
+let newArm=false;
+function start(data){
+  const saved=data&&data.S?migrate(data.S):loadSave();
+  S=saved||freshState();if(!saved){spawnForage();genRequests();}
+  if(S.scene==='island'){S.scene='village';S.px=14*16+8;S.py=22*16+12;}
+  applyWorld();resetVillagers();resize();addEventListener('resize',resize);
+  if(saved){$('#tContinue').hidden=false;$('#tNew').classList.remove('primary');}
+  $('#tContinue').onclick=beginPlay;
+  $('#tNew').onclick=()=>{if(saved&&!newArm){newArm=true;$('#tNew').textContent='Tap again to start over';return;}
+    S=freshState();spawnForage();genRequests();applyWorld();save();beginPlay();};
+  if(data&&data.S&&data.playing)beginPlay();
+  $('#coinIco').src=icon('coin');setMusic(AU.on);
+  let last=performance.now();
+  (function loop(now){const dt=clamp((now-last)/1000,0,.05);last=now;animT+=dt;
+    if(started&&!titleOpen&&!DLG.open&&!modalOpen&&!FI.active&&!fadeOpen&&!FEST.active&&!transOpen)update(dt);
+    if(FI.active)fishUpdate(dt);if(FEST.active)festUpdate(dt);
+    particles(dt);render(dt);if(started)hud();requestAnimationFrame(loop);})(last);
+}
+addEventListener('pagehide',()=>{if(started)save();});
+window.claude?.hot?.snapshot?.(()=>({S,playing:started}));
+const hot=window.claude?.hot;if(hot?.ready)hot.ready(start);else start(hot?.data??{});
+window.LH={goIsland,get S(){return S;},newDay,enterRoom,decStart,decAct,canPlace,get t(){return animT;}};
+})();
+</script>
